@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/shell";
 import { requireUser } from "@/server/auth";
-import { BOOKS, DESIGNS, STAMPS } from "@/lib/catalogue";
+import { BOOKS } from "@/lib/catalogue";
+import { getCatalogue } from "@/server/catalogue";
 import { DesignArt, StampArt } from "@/components/art";
 import { BuyButton } from "./buy-button";
 import { stripeConfigured } from "@/server/store";
@@ -14,6 +15,9 @@ export default async function StorePage({ searchParams }: { searchParams: Promis
   const user = await requireUser();
   const { paid } = await searchParams;
   const stripe = stripeConfigured();
+  const cat = await getCatalogue();
+  const DESIGNS = cat.designs.filter((d) => d.active);
+  const STAMPS = cat.stamps.filter((s) => s.active);
   const designs = [...DESIGNS.filter((d) => d.featured), ...DESIGNS.filter((d) => !d.featured && d.cost > 0)];
   const stamps = [...STAMPS.filter((s) => s.featured), ...STAMPS.filter((s) => !s.featured && s.cost > 0)];
   return (
@@ -41,7 +45,7 @@ export default async function StorePage({ searchParams }: { searchParams: Promis
           const owned = user.ownedDesigns.includes(d.id);
           return (
             <div key={d.id} className={`tile ${d.featured ? "featured" : ""}`}>
-              <div className="box"><DesignArt id={d.id} /></div>
+              <div className="box"><DesignArt design={d} /></div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
                 {d.featured && <span className="owned" style={{ color: "var(--red)" }}>Featured</span>}
                 <b>{d.name}</b>
@@ -60,7 +64,7 @@ export default async function StorePage({ searchParams }: { searchParams: Promis
           const owned = user.ownedStamps.includes(s.id);
           return (
             <div key={s.id} className={`tile ${s.featured ? "featured" : ""}`}>
-              <div className="box stamp"><StampArt id={s.id} hue={s.hue} /></div>
+              <div className="box stamp"><StampArt stamp={s} /></div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
                 {s.featured && <span className="owned" style={{ color: "var(--red)" }}>Featured</span>}
                 <b>{s.name}</b>

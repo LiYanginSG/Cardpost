@@ -9,7 +9,8 @@ The delay is the product. There is no deliver-now.
 ## Stack
 
 - Next.js 15 (App Router) + TypeScript
-- Postgres via Prisma 6 (Neon on Vercel, or any Postgres)
+- Supabase Postgres via Prisma 6 (any Postgres works)
+- Supabase Storage for uploaded postcard and stamp artwork; the catalogue lives in the database and is managed at `/admin`
 - Email magic-link sign-in (Resend)
 - A maintenance job flips arrived cards to delivered and sends the one email this app sends. It runs from a daily Vercel cron (the Hobby plan limit) and opportunistically after page loads, at most every 15 minutes
 - Stripe Checkout for postage books, OpenAI moderation for wandering text, Twilio Verify for phone verification — all optional, all gated on env vars
@@ -34,14 +35,19 @@ To run the maintenance job by hand:
 curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/deliver
 ```
 
-## Deploy to Vercel
+## Deploy to Vercel with Supabase
 
 1. Push this repo and import it in Vercel.
-2. Add **Neon** from the Vercel Marketplace (Storage tab). It sets `DATABASE_URL`. Copy the *unpooled* URL into `DIRECT_URL`.
-3. Set `APP_URL` to your Vercel URL, `CRON_SECRET` to any long random string, and `RESEND_API_KEY` + `EMAIL_FROM` (a verified sender on Resend).
-4. Deploy. The build runs `prisma migrate deploy` before `next build`, so the schema is applied automatically.
-5. The cron in `vercel.json` runs `/api/cron/deliver` once a day (Hobby plan limit). Vercel sends the `CRON_SECRET` bearer header itself. The same job also runs in the background after page loads, so arrivals and emails don't wait for the cron. On Pro you can change the schedule to `0 * * * *`.
-6. Optional: seed demo holders once with `DATABASE_URL=... npm run db:seed`, and set `DEMO_BOTS=1` so they keep wandering cards moving.
+2. In Supabase, open **Project settings → Database → Connection string**. Set:
+   - `DATABASE_URL` to the **transaction pooler** string (port 6543) with `?pgbouncer=true&connection_limit=1` appended
+   - `DIRECT_URL` to the **session pooler** or direct string (port 5432), used only for migrations
+   If the Vercel–Supabase integration already injected `POSTGRES_PRISMA_URL` and `POSTGRES_URL_NON_POOLING`, copy those values into the two names above.
+3. From **Project settings → API**, set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. The `artwork` bucket is created automatically, public, on the first upload.
+4. Set `ADMIN_EMAILS` to your sign-in email so you can reach `/admin`.
+5. Set `APP_URL` to your Vercel URL, `CRON_SECRET` to any long random string, and `RESEND_API_KEY` + `EMAIL_FROM` (a verified sender on Resend).
+6. Deploy. The build runs `prisma migrate deploy` before `next build`, so the schema is applied automatically. The seven built-in designs are inserted on first use.
+7. The cron in `vercel.json` runs `/api/cron/deliver` once a day (Hobby plan limit). Vercel sends the `CRON_SECRET` bearer header itself. The same job also runs in the background after page loads, so arrivals and emails don't wait for the cron. On Pro you can change the schedule to `0 * * * *`.
+8. Optional: seed demo holders once with `DATABASE_URL=... npm run db:seed`, and set `DEMO_BOTS=1` so they keep wandering cards moving.
 
 Leave `DEV_TIME_TRAVEL` unset in production.
 
@@ -50,6 +56,15 @@ Leave `DEV_TIME_TRAVEL` unset in production.
 - **Stripe**: set `STRIPE_SECRET_KEY` and add a webhook for `checkout.session.completed` pointing at `/api/stripe/webhook`; put its signing secret in `STRIPE_WEBHOOK_SECRET`.
 - **Moderation**: set `OPENAI_API_KEY` to use the moderation endpoint instead of the built-in word list.
 - **Phone verification**: set the three `TWILIO_*` vars. Without them, verification is a dev toggle (any code passes).
+
+## Adding postcards and stamps
+
+Sign in with an email listed in `ADMIN_EMAILS`, open **Account → Manage catalogue** (`/admin`), and upload the artwork file with a name, artist, cost and orientation. It appears in the store immediately. From the same page you can feature, retire, reprice, or gift a design to every existing account.
+
+- Postcard art: SVG, PNG, JPEG or WebP under 4 MB. Landscape 3:2 (say 1500×1000) or portrait 2:3. The card front is filled edge to edge; thumbnails letterbox.
+- Stamp art: roughly square. It is placed inside the perforated frame, tinted by the hue you choose, and cancelled by the postmark on the card.
+- Retiring a design hides it from the store but every card already carrying it keeps rendering, because the design id is frozen on the card.
+- The seven built-in designs are drawn in code (`src/components/art.tsx`) and seeded as rows; you can retire or reprice them like any other.
 
 ## Rules that are decisions, not suggestions
 
@@ -70,7 +85,7 @@ Leave `DEV_TIME_TRAVEL` unset in production.
 ```
 prisma/          schema, migrations, seed
 src/lib/         pure logic: cities, distance formulas, catalogue, clock, formatting
-src/server/      auth, cards, friends, store, cron, email, moderation, phone (server-only)
+src/server/      auth, cards, friends, store, catalogue, storage, admin, cron, email, moderation, phone (server-only)
 src/server/actions.ts   server actions used by the pages
 src/components/  postcard faces, artwork, seal reveal, map, shell
 src/app/         routes: mailbox, wall, write, store, account, p/[handle], card/[id], login, onboarding, api/*

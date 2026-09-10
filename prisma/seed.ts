@@ -5,6 +5,7 @@
  *   npx tsx prisma/seed.ts
  */
 import { PrismaClient } from "@prisma/client";
+import { BUILTIN_DESIGNS, BUILTIN_STAMPS } from "../src/lib/catalogue";
 
 const db = new PrismaClient();
 
@@ -39,6 +40,8 @@ const CARDS: { title: string; body: string; design: string; stamp: string; chain
 ];
 
 async function main() {
+  await db.design.createMany({ data: BUILTIN_DESIGNS, skipDuplicates: true });
+  await db.stamp.createMany({ data: BUILTIN_STAMPS, skipDuplicates: true });
   const users: Awaited<ReturnType<typeof db.user.upsert>>[] = [];
   for (let i = 0; i < DEMO.length; i++) {
     const [displayName, handle, city] = DEMO[i];

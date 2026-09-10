@@ -141,3 +141,31 @@ model Purchase {
   currency  String
   createdAt DateTime @default(now())
 }
+
+model Design {
+  id        String   @id
+  name      String
+  artist    String
+  cost      Int
+  orient    String   @default("land") // "land" | "port"
+  note      String   @default("")
+  featured  Boolean  @default(false)
+  artUrl    String?  // uploaded artwork; null means a built-in procedural design
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model Stamp {
+  id        String   @id
+  name      String
+  artist    String
+  cost      Int
+  hue       Int      @default(206)
+  note      String   @default("")
+  featured  Boolean  @default(false)
+  artUrl    String?
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}

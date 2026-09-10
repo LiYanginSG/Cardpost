@@ -11,7 +11,7 @@ import { WorldMap } from "@/components/world-map";
 import { WanderingActions } from "@/components/wandering-actions";
 import { ReportButton } from "@/components/report-button";
 import { progressOf } from "@/components/card-rows";
-import { designById, stampById } from "@/lib/catalogue";
+import { getCatalogue } from "@/server/catalogue";
 import { fmtDate, fmtNum } from "@/lib/format";
 import { fmtKm, routeStats } from "@/lib/geo";
 
@@ -23,8 +23,9 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const c = await visibleCard(id, user.id, t);
   if (!c) notFound();
-  const d = designById(c.designId);
-  const s = stampById(c.stampId);
+  const cat = await getCatalogue();
+  const d = cat.design(c.designId);
+  const s = cat.stamp(c.stampId);
   const isRecipient = c.recipientId === user.id;
   const arrived = Boolean(c.arrivesAt && c.arrivesAt <= t);
   const p = progressOf(c, t);
@@ -42,12 +43,12 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
         </div>
         {isRecipient ? (
           <SealReveal cardId={c.id} opened={opened} orient={d.orient}
-            front={<PostcardFront designId={c.designId} fromCity={c.senderCity} toCity={c.recipientCity} km={c.distanceKm} />}
-            back={canSeeBody ? <PostcardBack designId={c.designId} stampId={c.stampId} body={c.body} signature={c.sender.displayName ?? ""} toName={c.recipient?.displayName ?? ""} toCity={c.recipientCity ?? ""} postmarkCity={c.senderCity} postmarkDate={c.sentAt} /> : null} />
+            front={<PostcardFront design={d} fromCity={c.senderCity} toCity={c.recipientCity} km={c.distanceKm} />}
+            back={canSeeBody ? <PostcardBack design={d} stamp={s} body={c.body} signature={c.sender.displayName ?? ""} toName={c.recipient?.displayName ?? ""} toCity={c.recipientCity ?? ""} postmarkCity={c.senderCity} postmarkDate={c.sentAt} /> : null} />
         ) : (
           <FlipCard orient={d.orient} startFlipped
-            front={<PostcardFront designId={c.designId} fromCity={c.senderCity} toCity={c.recipientCity} km={c.distanceKm} />}
-            back={<PostcardBack designId={c.designId} stampId={c.stampId} body={c.body} signature={c.sender.displayName ?? ""} toName={c.recipient?.displayName ?? ""} toCity={c.recipientCity ?? ""} postmarkCity={c.senderCity} postmarkDate={c.sentAt} />} />
+            front={<PostcardFront design={d} fromCity={c.senderCity} toCity={c.recipientCity} km={c.distanceKm} />}
+            back={<PostcardBack design={d} stamp={s} body={c.body} signature={c.sender.displayName ?? ""} toName={c.recipient?.displayName ?? ""} toCity={c.recipientCity ?? ""} postmarkCity={c.senderCity} postmarkDate={c.sentAt} />} />
         )}
         <h2>Route</h2>
         <WorldMap cities={[c.senderCity, c.recipientCity ?? c.senderCity]} progress={arrived ? undefined : p} />
@@ -74,8 +75,8 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
         <span>{c.status === "pooled" ? "waiting for a holder" : c.status === "in_transit" ? `en route to ${c.recipientCity}` : holderNow ? "in your hands" : `resting in ${c.recipientCity}`}</span>
       </div>
       <FlipCard orient={d.orient}
-        front={<PostcardFront designId={c.designId} fromCity={c.senderCity} toCity={cities[cities.length - 1]} km={stats.totalKm} />}
-        back={<PostcardBack designId={c.designId} stampId={c.stampId} body={c.body} signature={c.sender.displayName ?? ""} toName="whoever holds this" toCity={c.recipientCity ?? "the world"} postmarkCity={c.senderCity} postmarkDate={c.hops[0]?.addedAt ?? c.sentAt} />} />
+        front={<PostcardFront design={d} fromCity={c.senderCity} toCity={cities[cities.length - 1]} km={stats.totalKm} />}
+        back={<PostcardBack design={d} stamp={s} body={c.body} signature={c.sender.displayName ?? ""} toName="whoever holds this" toCity={c.recipientCity ?? "the world"} postmarkCity={c.senderCity} postmarkDate={c.hops[0]?.addedAt ?? c.sentAt} />} />
       <div className="stats">
         <div className="stat"><b>{fmtNum(stats.totalKm)}</b><span>km travelled</span></div>
         <div className="stat"><b>{stats.uniqueCities}</b><span>unique cities</span></div>

@@ -8,7 +8,7 @@ import { WaxSeal } from "./art";
  * The emotional peak of the app. An unopened sealed card shows only a wax seal.
  * Breaking it records openedAt on the server, then the card turns over to reveal the message.
  */
-export function SealReveal({ cardId, front, back, opened, orient }: { cardId: string; front: React.ReactNode; back: React.ReactNode | null; opened: boolean; orient: "land" | "port" }) {
+export function SealReveal({ cardId, front, back, opened, orient }: { cardId: string; front: React.ReactNode; back: React.ReactNode | null; opened: boolean; orient: string }) {
   const router = useRouter();
   const [breaking, setBreaking] = useState(false);
   const [flipped, setFlipped] = useState(opened);

@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 import { sendCardAction, type FormState } from "@/server/actions";
-import { DESIGNS, STAMPS, designById, stampById } from "@/lib/catalogue";
+import type { Design, Stamp } from "@/lib/catalogue";
 import { deliveryDays, haversineKm, postageCost, fmtKm } from "@/lib/geo";
 import { MAX_BODY, MAX_TITLE, fmtDate } from "@/lib/format";
 import { DesignArt, StampArt } from "@/components/art";
@@ -12,10 +12,10 @@ import { FlipCard } from "@/components/flip-card";
 type U = { id: string; displayName: string; city: string; postage: number; ownedDesigns: string[]; ownedStamps: string[]; activeDesign: string; activeStamp: string; openToWandering: boolean; phoneVerified: boolean };
 type F = { id: string; displayName: string; city: string };
 
-export function Composer({ user, friends, initialTo, initialKind, nowIso, wanderingLeft }: { user: U; friends: F[]; initialTo?: string; initialKind: "sealed" | "wandering"; nowIso: string; wanderingLeft: number }) {
+export function Composer({ user, friends, designs, stamps, initialTo, initialKind, nowIso, wanderingLeft }: { user: U; friends: F[]; designs: Design[]; stamps: Stamp[]; initialTo?: string; initialKind: "sealed" | "wandering"; nowIso: string; wanderingLeft: number }) {
   const [kind, setKind] = useState<"sealed" | "wandering">(initialKind);
-  const [designId, setDesign] = useState(user.ownedDesigns.includes(user.activeDesign) ? user.activeDesign : user.ownedDesigns[0] ?? "classic");
-  const [stampId, setStamp] = useState(user.ownedStamps.includes(user.activeStamp) ? user.activeStamp : user.ownedStamps[0] ?? "house");
+  const [designId, setDesign] = useState(designs.some((d) => d.id === user.activeDesign) ? user.activeDesign : designs[0]?.id ?? "classic");
+  const [stampId, setStamp] = useState(stamps.some((s) => s.id === user.activeStamp) ? user.activeStamp : stamps[0]?.id ?? "house");
   const [to, setTo] = useState(initialTo && friends.some((f) => f.id === initialTo) ? initialTo : friends[0]?.id ?? "");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -27,9 +27,10 @@ export function Composer({ user, friends, initialTo, initialKind, nowIso, wander
   const cost = kind === "sealed" ? (toCity ? postageCost(km) : 0) : null; // wandering cost depends on the random recipient
   const days = toCity ? deliveryDays(km) : null;
   const arrives = days ? fmtDate(new Date(new Date(nowIso).getTime() + days * 86_400_000)) : null;
-  const d = designById(designId);
-  const owned = useMemo(() => DESIGNS.filter((x) => user.ownedDesigns.includes(x.id)), [user.ownedDesigns]);
-  const ownedStamps = useMemo(() => STAMPS.filter((x) => user.ownedStamps.includes(x.id)), [user.ownedStamps]);
+  const d = useMemo(() => designs.find((x) => x.id === designId) ?? designs[0], [designs, designId]);
+  const st = useMemo(() => stamps.find((x) => x.id === stampId) ?? stamps[0], [stamps, stampId]);
+  const owned = designs;
+  const ownedStamps = stamps;
   const previewTitle = title || body.split(/[.!?\n]/)[0].slice(0, MAX_TITLE);
   const wanderingBlocked = kind === "wandering" && (!user.openToWandering || !user.phoneVerified);
   const canSend = body.trim().length > 0 && (kind === "sealed" ? Boolean(recipient) && user.postage >= (cost ?? 0) : !wanderingBlocked && title.trim().length > 0 && wanderingLeft > 0 && user.postage >= 1);
@@ -49,14 +50,14 @@ export function Composer({ user, friends, initialTo, initialKind, nowIso, wander
 
       <h2>Preview</h2>
       <FlipCard key={d.orient} orient={d.orient}
-        front={<PostcardFront designId={designId} fromCity={user.city} toCity={kind === "sealed" ? toCity : "somewhere"} km={km || undefined} />}
-        back={<PostcardBack designId={designId} stampId={stampId} body={body || "Your message will appear here, in your own hand."} signature={user.displayName} toName={kind === "sealed" ? recipient?.displayName ?? "—" : "whoever holds this"} toCity={kind === "sealed" ? toCity ?? "" : "the world"} postmarkCity={user.city} postmarkDate={nowIso} />} />
+        front={<PostcardFront design={d} fromCity={user.city} toCity={kind === "sealed" ? toCity : "somewhere"} km={km || undefined} />}
+        back={<PostcardBack design={d} stamp={st} body={body || "Your message will appear here, in your own hand."} signature={user.displayName} toName={kind === "sealed" ? recipient?.displayName ?? "—" : "whoever holds this"} toCity={kind === "sealed" ? toCity ?? "" : "the world"} postmarkCity={user.city} postmarkDate={nowIso} />} />
 
       <h2>Postcard</h2>
       <div className="scroller" role="radiogroup" aria-label="Postcard design">
         {owned.map((x) => (
           <button type="button" key={x.id} role="radio" aria-checked={designId === x.id} className={`pick ${designId === x.id ? "on" : ""}`} onClick={() => setDesign(x.id)}>
-            <div className="box"><DesignArt id={x.id} /></div>
+            <div className="box"><DesignArt design={x} /></div>
             <small>{x.name}</small>
           </button>
         ))}
@@ -67,7 +68,7 @@ export function Composer({ user, friends, initialTo, initialKind, nowIso, wander
       <div className="scroller" role="radiogroup" aria-label="Stamp">
         {ownedStamps.map((x) => (
           <button type="button" key={x.id} role="radio" aria-checked={stampId === x.id} className={`pick ${stampId === x.id ? "on" : ""}`} onClick={() => setStamp(x.id)}>
-            <div className="box stamp"><StampArt id={x.id} hue={x.hue} /></div>
+            <div className="box stamp"><StampArt stamp={x} /></div>
             <small>{x.name}</small>
           </button>
         ))}

@@ -2,7 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { arrivalDate, haversineKm, postageCost, routeStats } from "@/lib/geo";
 import { MAX_BODY, MAX_TITLE, PASS_COST, WANDERING_DAILY_LIMIT } from "@/lib/format";
-import { designById, stampById } from "@/lib/catalogue";
+import { getCatalogue } from "./catalogue";
 import { moderate } from "./moderation";
 import { areFriends } from "./friends";
 import type { Card, User, WanderingHop, Prisma } from "@prisma/client";
@@ -22,11 +22,12 @@ function deriveTitle(body: string) {
   return body.split(/[.!?\n]/)[0].trim().slice(0, MAX_TITLE) || "A card";
 }
 
-function validateCommon(user: User, designId: string, stampId: string, body: string) {
+async function validateCommon(user: User, designId: string, stampId: string, body: string) {
   if (!body.trim()) return "Write something first.";
   if (body.length > MAX_BODY) return `Keep it under ${MAX_BODY} characters.`;
-  if (!user.ownedDesigns.includes(designById(designId).id)) return "You don't own that postcard.";
-  if (!user.ownedStamps.includes(stampById(stampId).id)) return "You don't own that stamp.";
+  const cat = await getCatalogue();
+  if (cat.design(designId).id !== designId || !user.ownedDesigns.includes(designId)) return "You don't own that postcard.";
+  if (cat.stamp(stampId).id !== stampId || !user.ownedStamps.includes(stampId)) return "You don't own that stamp.";
   return null;
 }
 
@@ -38,7 +39,7 @@ export async function sendSealed(
   now: Date,
 ): Promise<Result<Card>> {
   const body = input.body.trim();
-  const err = validateCommon(user, input.designId, input.stampId, body);
+  const err = await validateCommon(user, input.designId, input.stampId, body);
   if (err) return fail(err);
   if (input.recipientId === user.id) return fail("You can't write to yourself. Try a diary.");
   const recipient = await db.user.findUnique({ where: { id: input.recipientId } });
@@ -58,8 +59,8 @@ export async function sendSealed(
       data: {
         type: "sealed",
         title,
-        designId: designById(input.designId).id,
-        stampId: stampById(input.stampId).id,
+        designId: input.designId,
+        stampId: input.stampId,
         senderId: user.id,
         senderCity: user.city,
         recipientId: recipient.id,
@@ -140,7 +141,7 @@ export async function sendWandering(
 ): Promise<Result<Card>> {
   const body = input.body.trim();
   const title = input.title.trim().slice(0, MAX_TITLE);
-  const err = validateCommon(user, input.designId, input.stampId, body);
+  const err = await validateCommon(user, input.designId, input.stampId, body);
   if (err) return fail(err);
   if (!title) return fail("Wandering cards need a title. It's how people find this card on the wall.");
   if (!user.openToWandering) return fail("Open yourself to wandering mail in Account first.");
@@ -155,8 +156,8 @@ export async function sendWandering(
     data: {
       type: "wandering",
       title,
-      designId: designById(input.designId).id,
-      stampId: stampById(input.stampId).id,
+      designId: input.designId,
+      stampId: input.stampId,
       senderId: user.id,
       senderCity: user.city,
       body,

@@ -8,7 +8,7 @@ import { PostcardBack, PostcardFront } from "@/components/postcard";
 import { SealReveal } from "@/components/seal-reveal";
 import { FlipCard } from "@/components/flip-card";
 import { WanderingActions } from "@/components/wandering-actions";
-import { designById } from "@/lib/catalogue";
+import { getCatalogue, type Catalogue } from "@/server/catalogue";
 import { fmtDate } from "@/lib/format";
 import { fmtKm } from "@/lib/geo";
 
@@ -20,6 +20,7 @@ type SP = { kind?: string; box?: string; view?: string; sent?: string };
 export default async function Mailbox({ searchParams }: { searchParams: Promise<SP> }) {
   const user = await requireUser();
   const t = await now();
+  const cat = await getCatalogue();
   const sp = await searchParams;
   const kind = sp.kind === "wandering" ? "wandering" : "sealed";
   const box = sp.box === "out" ? "out" : "in";
@@ -52,22 +53,23 @@ export default async function Mailbox({ searchParams }: { searchParams: Promise<
 
       {cards.length === 0 && <Empty kind={kind} box={box} />}
 
-      {box === "out" && cards.length > 0 && <div className="list">{cards.map((c) => <TrackRow key={c.id} card={c} now={t} />)}</div>}
+      {box === "out" && cards.length > 0 && <div className="list">{cards.map((c) => <TrackRow key={c.id} card={c} now={t} cat={cat} />)}</div>}
 
-      {box === "in" && view === "list" && cards.length > 0 && <CardList cards={cards} now={t} mode="in" />}
+      {box === "in" && view === "list" && cards.length > 0 && <CardList cards={cards} now={t} mode="in" cat={cat} />}
 
       {box === "in" && view === "card" && cards.map((c) => (
         <article key={c.id} className="item" style={{ marginTop: 26 }}>
-          {kind === "sealed" ? <SealedItem card={c} /> : <WanderingItem card={c} postage={user.postage} />}
+          {kind === "sealed" ? <SealedItem card={c} cat={cat} /> : <WanderingItem card={c} postage={user.postage} cat={cat} />}
         </article>
       ))}
     </AppShell>
   );
 }
 
-function SealedItem({ card: c }: { card: CardFull }) {
+function SealedItem({ card: c, cat }: { card: CardFull; cat: Catalogue }) {
   const opened = Boolean(c.openedAt);
-  const d = designById(c.designId);
+  const d = cat.design(c.designId);
+  const st = cat.stamp(c.stampId);
   return (
     <>
       <h3>{opened ? c.title : "A sealed card"}</h3>
@@ -79,16 +81,17 @@ function SealedItem({ card: c }: { card: CardFull }) {
         cardId={c.id}
         opened={opened}
         orient={d.orient}
-        front={<PostcardFront designId={c.designId} fromCity={c.senderCity} toCity={c.recipientCity} km={c.distanceKm} />}
-        back={opened ? <PostcardBack designId={c.designId} stampId={c.stampId} body={c.body} signature={c.sender.displayName ?? ""} toName={c.recipient?.displayName ?? ""} toCity={c.recipientCity ?? ""} postmarkCity={c.senderCity} postmarkDate={c.sentAt} /> : null}
+        front={<PostcardFront design={d} fromCity={c.senderCity} toCity={c.recipientCity} km={c.distanceKm} />}
+        back={opened ? <PostcardBack design={d} stamp={st} body={c.body} signature={c.sender.displayName ?? ""} toName={c.recipient?.displayName ?? ""} toCity={c.recipientCity ?? ""} postmarkCity={c.senderCity} postmarkDate={c.sentAt} /> : null}
       />
       {opened && <div className="row-actions"><Link href={`/write?to=${c.sender.id}`} className="btn btn-sm">Write back</Link><Link href={`/card/${c.id}`} className="btn btn-sm btn-ghost">Open</Link></div>}
     </>
   );
 }
 
-function WanderingItem({ card: c, postage }: { card: CardFull; postage: number }) {
-  const d = designById(c.designId);
+function WanderingItem({ card: c, postage, cat }: { card: CardFull; postage: number; cat: Catalogue }) {
+  const d = cat.design(c.designId);
+  const st = cat.stamp(c.stampId);
   const last = c.hops[c.hops.length - 1];
   return (
     <>
@@ -99,8 +102,8 @@ function WanderingItem({ card: c, postage }: { card: CardFull; postage: number }
       </div>
       <FlipCard
         orient={d.orient}
-        front={<PostcardFront designId={c.designId} fromCity={last?.city ?? c.senderCity} toCity={c.recipientCity} km={c.distanceKm} />}
-        back={<PostcardBack designId={c.designId} stampId={c.stampId} body={c.body} signature={c.sender.displayName ?? ""} toName="whoever holds this" toCity={c.recipientCity ?? ""} postmarkCity={c.senderCity} postmarkDate={c.hops[0]?.addedAt ?? c.sentAt} />}
+        front={<PostcardFront design={d} fromCity={last?.city ?? c.senderCity} toCity={c.recipientCity} km={c.distanceKm} />}
+        back={<PostcardBack design={d} stamp={st} body={c.body} signature={c.sender.displayName ?? ""} toName="whoever holds this" toCity={c.recipientCity ?? ""} postmarkCity={c.senderCity} postmarkDate={c.hops[0]?.addedAt ?? c.sentAt} />}
       />
       <Link href={`/card/${c.id}`} className="link small">Read its history and route</Link>
       <WanderingActions cardId={c.id} postage={postage} />

@@ -6,6 +6,7 @@ import { wanderingSentToday } from "@/server/cards";
 import { now } from "@/lib/clock";
 import { Composer } from "./composer";
 import { WANDERING_DAILY_LIMIT } from "@/lib/format";
+import { getCatalogue } from "@/server/catalogue";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Write" };
@@ -16,6 +17,7 @@ export default async function WritePage({ searchParams }: { searchParams: Promis
   const sp = await searchParams;
   const friends = await listFriends(user.id);
   const sentToday = await wanderingSentToday(user.id, t);
+  const cat = await getCatalogue();
   return (
     <AppShell user={user} active="write">
       <h1>Write a card</h1>
@@ -25,6 +27,8 @@ export default async function WritePage({ searchParams }: { searchParams: Promis
       )}
       <Composer
         user={{ id: user.id, displayName: user.displayName, city: user.city, postage: user.postage, ownedDesigns: user.ownedDesigns, ownedStamps: user.ownedStamps, activeDesign: user.activeDesign, activeStamp: user.activeStamp, openToWandering: user.openToWandering, phoneVerified: user.phoneVerified }}
+        designs={cat.designs.filter((d) => user.ownedDesigns.includes(d.id))}
+        stamps={cat.stamps.filter((s) => user.ownedStamps.includes(s.id))}
         friends={friends.map((f) => ({ id: f.id, displayName: f.displayName, city: f.city }))}
         initialTo={sp.to}
         initialKind={sp.kind === "wandering" ? "wandering" : "sealed"}

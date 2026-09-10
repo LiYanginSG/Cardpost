@@ -6,6 +6,7 @@ import { Sheet } from "./map-sheet";
 import { WorldMap } from "./world-map";
 import { fmtDate, fmtMonth, daysLeft } from "@/lib/format";
 import { fmtKm } from "@/lib/geo";
+import type { Catalogue } from "@/server/catalogue";
 
 export function progressOf(c: { sentAt: Date; arrivesAt: Date | null }, now: Date) {
   if (!c.arrivesAt) return 0;
@@ -15,7 +16,7 @@ export function progressOf(c: { sentAt: Date; arrivesAt: Date | null }, now: Dat
 }
 
 /** One row per card, grouped by month. Fixed height, text clamps. */
-export function CardList({ cards, now, mode }: { cards: CardFull[]; now: Date; mode: "in" | "out" }) {
+export function CardList({ cards, now, mode, cat }: { cards: CardFull[]; now: Date; mode: "in" | "out"; cat: Catalogue }) {
   const groups = new Map<string, CardFull[]>();
   for (const c of cards) {
     const k = fmtMonth(mode === "in" ? c.arrivesAt ?? c.sentAt : c.sentAt);
@@ -32,7 +33,7 @@ export function CardList({ cards, now, mode }: { cards: CardFull[]; now: Date; m
             const arrived = c.arrivesAt ? c.arrivesAt <= now : false;
             return (
               <Link key={c.id} href={`/card/${c.id}`} className="row">
-                <DesignThumb designId={c.designId} />
+                <DesignThumb design={cat.design(c.designId)} />
                 <div className="t">
                   <b>{c.type === "sealed" && mode === "in" && unread ? "Sealed card" : c.title}</b>
                   <span>{c.type === "wandering" && mode === "in" ? "a stranger" : other?.displayName ?? "—"} · {fmtKm(c.distanceKm)}</span>
@@ -51,7 +52,7 @@ export function CardList({ cards, now, mode }: { cards: CardFull[]; now: Date; m
 }
 
 /** Sender-side tracking: progress line, tap for the world map. Recipient gets silence. */
-export function TrackRow({ card, now }: { card: CardFull; now: Date }) {
+export function TrackRow({ card, now }: { card: CardFull; now: Date; cat?: Catalogue }) {
   const p = progressOf(card, now);
   const arrived = p >= 1;
   const cities = card.type === "sealed" ? [card.senderCity, card.recipientCity ?? card.senderCity] : routeCities(card).concat(card.status === "in_transit" && card.recipientCity ? [card.recipientCity] : []);

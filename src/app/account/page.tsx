@@ -6,7 +6,8 @@ import { now } from "@/lib/clock";
 import { listFriends, pendingRequests } from "@/server/friends";
 import { phoneConfigured } from "@/server/phone";
 import { nextPostageDate } from "@/server/postage";
-import { DESIGNS, STAMPS } from "@/lib/catalogue";
+import { getCatalogue } from "@/server/catalogue";
+import { isAdmin } from "@/server/admin";
 import { DesignArt, StampArt } from "@/components/art";
 import { AcceptButton, AddFriend, PhoneVerify, ProfileForm, RemoveButton, SignOut, Toggle } from "./client";
 import { fmtDate, fmtDateYear, fmtNum, initials } from "@/lib/format";
@@ -17,6 +18,9 @@ export const metadata = { title: "Account" };
 export default async function AccountPage() {
   const user = await requireUser();
   const t = await now();
+  const cat = await getCatalogue();
+  const DESIGNS = cat.designs.filter((d) => d.active || user.ownedDesigns.includes(d.id));
+  const STAMPS = cat.stamps.filter((s) => s.active || user.ownedStamps.includes(s.id));
   const [friends, pending, sent, received, opened, signed, kmSent] = await Promise.all([
     listFriends(user.id),
     pendingRequests(user.id),
@@ -48,12 +52,12 @@ export default async function AccountPage() {
       <p className="small" style={{ color: "var(--ink-2)" }}>{user.ownedDesigns.length} of {DESIGNS.length} postcards · {user.ownedStamps.length} of {STAMPS.length} stamps</p>
       <div className="grid">
         {DESIGNS.map((d) => { const o = user.ownedDesigns.includes(d.id); return (
-          <div key={d.id} className={`tile ${o ? "" : "locked"}`}><div className="box"><DesignArt id={d.id} /></div><b>{d.name}</b><span className="artist">{d.artist}</span>{o ? <span className="owned">owned</span> : <span className="notyet">not yet</span>}</div>
+          <div key={d.id} className={`tile ${o ? "" : "locked"}`}><div className="box"><DesignArt design={d} /></div><b>{d.name}</b><span className="artist">{d.artist}</span>{o ? <span className="owned">owned</span> : <span className="notyet">not yet</span>}</div>
         ); })}
       </div>
       <div className="grid">
         {STAMPS.map((s) => { const o = user.ownedStamps.includes(s.id); return (
-          <div key={s.id} className={`tile ${o ? "" : "locked"}`}><div className="box stamp"><StampArt id={s.id} hue={s.hue} /></div><b>{s.name}</b><span className="artist">{s.artist}</span>{o ? <span className="owned">owned</span> : <span className="notyet">not yet</span>}</div>
+          <div key={s.id} className={`tile ${o ? "" : "locked"}`}><div className="box stamp"><StampArt stamp={s} /></div><b>{s.name}</b><span className="artist">{s.artist}</span>{o ? <span className="owned">owned</span> : <span className="notyet">not yet</span>}</div>
         ); })}
       </div>
 
@@ -91,6 +95,9 @@ export default async function AccountPage() {
       <Toggle prefKey="openToWandering" value={user.openToWandering} label="Open to wandering mail" sub="Strangers' public cards can land with you. Needs a verified phone to post your own." />
       <Toggle prefKey="notifyOnArrival" value={user.notifyOnArrival} label="Email me when a card arrives" sub="The only message Cardpost ever sends. Nothing about cards in transit." />
 
+      {isAdmin(user) && (
+        <><h2>Admin</h2><p className="small" style={{ color: "var(--ink-2)" }}>You can add postcards and stamps to the store.</p><div className="row-actions"><Link href="/admin" className="btn btn-sm">Manage catalogue</Link></div></>
+      )}
       <div style={{ marginTop: 28 }}><SignOut /></div>
     </AppShell>
   );

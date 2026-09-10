@@ -2,7 +2,7 @@
 import { useState } from "react";
 
 /** A postcard you can turn over. Front and back are rendered by the server; this only flips. */
-export function FlipCard({ front, back, orient, startFlipped = false, hint = true }: { front: React.ReactNode; back: React.ReactNode; orient: "land" | "port"; startFlipped?: boolean; hint?: boolean }) {
+export function FlipCard({ front, back, orient, startFlipped = false, hint = true }: { front: React.ReactNode; back: React.ReactNode; orient: string; startFlipped?: boolean; hint?: boolean }) {
   const [flipped, setFlipped] = useState(startFlipped);
   return (
     <div className="card-wrap">

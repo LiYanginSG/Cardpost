@@ -1,15 +1,17 @@
 import "server-only";
 import Stripe from "stripe";
 import { db } from "@/lib/db";
-import { BOOKS, designById, stampById, DESIGNS, STAMPS } from "@/lib/catalogue";
+import { BOOKS } from "@/lib/catalogue";
+import { getCatalogue } from "./catalogue";
 import { appUrl } from "./email";
 
 export const stripeConfigured = () => Boolean(process.env.STRIPE_SECRET_KEY);
 const stripe = () => new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 export async function buyDesign(userId: string, designId: string): Promise<{ ok: boolean; error?: string }> {
-  const d = DESIGNS.find((x) => x.id === designId);
-  if (!d) return { ok: false, error: "Unknown design." };
+  const cat = await getCatalogue();
+  const d = cat.designs.find((x) => x.id === designId && x.active);
+  if (!d) return { ok: false, error: "That design isn't for sale." };
   const u = await db.user.findUniqueOrThrow({ where: { id: userId } });
   if (u.ownedDesigns.includes(d.id)) return { ok: false, error: "Already in your collection." };
   if (u.postage < d.cost) return { ok: false, error: `Needs ${d.cost} postage. You have ${u.postage}.` };
@@ -18,8 +20,9 @@ export async function buyDesign(userId: string, designId: string): Promise<{ ok:
 }
 
 export async function buyStamp(userId: string, stampId: string): Promise<{ ok: boolean; error?: string }> {
-  const s = STAMPS.find((x) => x.id === stampId);
-  if (!s) return { ok: false, error: "Unknown stamp." };
+  const cat = await getCatalogue();
+  const s = cat.stamps.find((x) => x.id === stampId && x.active);
+  if (!s) return { ok: false, error: "That stamp isn't for sale." };
   const u = await db.user.findUniqueOrThrow({ where: { id: userId } });
   if (u.ownedStamps.includes(s.id)) return { ok: false, error: "Already in your collection." };
   if (u.postage < s.cost) return { ok: false, error: `Needs ${s.cost} postage. You have ${u.postage}.` };
@@ -30,8 +33,8 @@ export async function buyStamp(userId: string, stampId: string): Promise<{ ok: b
 export async function setActive(userId: string, designId?: string, stampId?: string) {
   const u = await db.user.findUniqueOrThrow({ where: { id: userId } });
   const data: { activeDesign?: string; activeStamp?: string } = {};
-  if (designId && u.ownedDesigns.includes(designById(designId).id)) data.activeDesign = designId;
-  if (stampId && u.ownedStamps.includes(stampById(stampId).id)) data.activeStamp = stampId;
+  if (designId && u.ownedDesigns.includes(designId)) data.activeDesign = designId;
+  if (stampId && u.ownedStamps.includes(stampId)) data.activeStamp = stampId;
   if (Object.keys(data).length) await db.user.update({ where: { id: userId }, data });
 }
 

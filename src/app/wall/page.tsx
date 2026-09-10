@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/shell";
 import { requireUser } from "@/server/auth";
 import { wall } from "@/server/cards";
+import { getCatalogue } from "@/server/catalogue";
 import { DesignThumb } from "@/components/postcard";
 import { Sheet } from "@/components/map-sheet";
 import { WorldMap } from "@/components/world-map";
@@ -20,6 +21,7 @@ function routeSummary(cities: string[]) {
 export default async function WallPage() {
   const user = await requireUser();
   const rows = await wall(50);
+  const cat = await getCatalogue();
   return (
     <AppShell user={user} active="wall">
       <h1>The wall</h1>
@@ -28,7 +30,7 @@ export default async function WallPage() {
       <div className="list">
         {rows.map((r, i) => (
           <div key={r.card.id} className="row" style={{ gridTemplateColumns: "56px 26px 1fr auto" }}>
-            <DesignThumb designId={r.card.designId} />
+            <DesignThumb design={cat.design(r.card.designId)} />
             <span className={`rank ${i < 3 ? "top" : ""}`}>{i + 1}</span>
             <div className="t">
               <b>{r.card.title}</b>

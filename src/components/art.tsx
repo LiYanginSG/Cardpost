@@ -1,6 +1,6 @@
 /* Procedural SVG artwork. Everything scales without asset variants. */
 
-type ArtProps = { id: string; className?: string };
+import type { Design, Stamp } from "@/lib/catalogue";
 
 const P = {
   ink: "#1B2A4A",
@@ -10,13 +10,20 @@ const P = {
   kraft: "#E5D7B8",
 };
 
-/** Postcard front artwork. Landscape designs draw in a 300x200 box, portrait in 200x300. */
-export function DesignArt({ id, className }: ArtProps) {
-  const port = id === "lantern";
+/**
+ * Postcard front artwork. Uploaded designs render their image; built-ins are drawn procedurally.
+ * Landscape designs draw in a 300x200 box, portrait in 200x300.
+ */
+export function DesignArt({ design, className }: { design: Design; className?: string }) {
+  if (design.artUrl) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={design.artUrl} alt="" className={className} draggable={false} />;
+  }
+  const port = design.orient === "port";
   const vb = port ? "0 0 200 300" : "0 0 300 200";
   return (
     <svg viewBox={vb} className={className} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-      {scene(id)}
+      {scene(design.id)}
     </svg>
   );
 }
@@ -173,7 +180,8 @@ function scene(id: string) {
 }
 
 /** A stamp: perforated rectangle, tinted by hue, with a small motif. 42x53 box. */
-export function StampArt({ id, hue, className, cancelled }: { id: string; hue: number; className?: string; cancelled?: boolean }) {
+export function StampArt({ stamp, className, cancelled }: { stamp: Stamp; className?: string; cancelled?: boolean }) {
+  const { id, hue } = stamp;
   const bg = `hsl(${hue} 42% 88%)`;
   const fg = `hsl(${hue} 55% 34%)`;
   return (
@@ -181,7 +189,7 @@ export function StampArt({ id, hue, className, cancelled }: { id: string; hue: n
       <rect x="1" y="1" width="40" height="51" fill="#FFF" />
       <rect x="1" y="1" width="40" height="51" fill="none" stroke="#FFF" strokeWidth="2" strokeDasharray="2 2" />
       <rect x="4" y="4" width="34" height="45" fill={bg} stroke={fg} strokeWidth=".8" />
-      {stampMotif(id, fg)}
+      {stamp.artUrl ? <image href={stamp.artUrl} x="4.5" y="4.5" width="33" height="36" preserveAspectRatio="xMidYMid slice" /> : stampMotif(id, fg)}
       <text x="21" y="46" textAnchor="middle" fontSize="4.5" fill={fg} fontFamily="'Courier Prime', monospace" letterSpacing=".5">CARDPOST</text>
       {cancelled && (
         <g stroke="#1B2A4A" strokeWidth=".9" opacity=".7" fill="none">
