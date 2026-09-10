@@ -17,7 +17,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <h1>Cardpost</h1>
         <p>Slow mail. You write a card, it takes real days to arrive, and the person you wrote to can't see it until it lands.</p>
         <p>Sign in with an email link. No password to forget.</p>
-        {error === "expired" && <div className="warn">That link has expired or was already used. Ask for a new one.</div>}
+        {error === "expired" && <div className="warn">That link has expired, was already used, or was opened in a different browser from the one that asked for it. Ask for a new one here.</div>}
         <LoginForm />
       </div>
     </div>

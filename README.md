@@ -11,7 +11,7 @@ The delay is the product. There is no deliver-now.
 - Next.js 15 (App Router) + TypeScript
 - Supabase Postgres via Prisma 6 (any Postgres works)
 - Supabase Storage for uploaded postcard and stamp artwork; the catalogue lives in the database and is managed at `/admin`
-- Email magic-link sign-in (Resend)
+- Sign-in with Supabase Auth (email magic link); users appear under Authentication in Supabase and as profile rows in the User table
 - A maintenance job flips arrived cards to delivered and sends the one email this app sends. It runs from a daily Vercel cron (the Hobby plan limit) and opportunistically after page loads, at most every 15 minutes
 - Stripe Checkout for postage books, OpenAI moderation for wandering text, Twilio Verify for phone verification — all optional, all gated on env vars
 - Installable PWA. The API surface lives in `src/server/*` behind thin server actions, so a React Native / Expo app can share it later.
@@ -26,7 +26,7 @@ npm run db:seed              # optional: demo holders + wandering cards so the w
 npm run dev
 ```
 
-With no `RESEND_API_KEY`, the sign-in link is printed to the terminal and shown on the login screen. That only happens outside production; a production deploy without Resend refuses to sign anyone in.
+With no Supabase keys set locally, a built-in dev sign-in shows the link on the login screen. In production, sign-in always goes through Supabase Auth.
 With `DEV_TIME_TRAVEL=1`, a clock bar at the top lets you jump days ahead to watch cards arrive.
 
 To run the maintenance job by hand:
@@ -40,12 +40,14 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/deli
 1. Push this repo and import it in Vercel.
 2. Connect Supabase to the Vercel project through the **Supabase integration** (Vercel → Integrations, or Supabase → Project settings → Integrations). It injects `POSTGRES_PRISMA_URL`, `POSTGRES_URL_NON_POOLING`, `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, and the app reads those directly. Nothing to copy.
    Without the integration, set `DATABASE_URL` (transaction pooler, port 6543, with `?pgbouncer=true&connection_limit=1`) and `DIRECT_URL` (session pooler or direct, port 5432) from **Project settings → Database**, and `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` from **Project settings → API**.
-3. The `artwork` Storage bucket is created automatically, public, on the first upload.
-4. Set `ADMIN_EMAILS` to your sign-in email so you can reach `/admin`.
-5. Set `APP_URL` to your Vercel URL, `CRON_SECRET` to any long random string, and `RESEND_API_KEY` + `EMAIL_FROM` (a verified sender on Resend).
-6. Deploy. The build runs `prisma migrate deploy` before `next build`, so the schema is applied automatically. The seven built-in designs are inserted on first use.
-7. The cron in `vercel.json` runs `/api/cron/deliver` once a day (Hobby plan limit). Vercel sends the `CRON_SECRET` bearer header itself. The same job also runs in the background after page loads, so arrivals and emails don't wait for the cron. On Pro you can change the schedule to `0 * * * *`.
-8. Optional: seed demo holders once with `DATABASE_URL=... npm run db:seed`, and set `DEMO_BOTS=1` so they keep wandering cards moving.
+3. In Supabase, open **Authentication → URL Configuration**. Set **Site URL** to your Vercel URL and add `https://your-app.vercel.app/auth/callback` under **Redirect URLs**. Sign-in links bounce without this.
+   Supabase's built-in mailer is enough to test with (a few emails an hour). Before inviting people, add a real sender under **Authentication → SMTP Settings** (Resend works: host `smtp.resend.com`, port 465, user `resend`, password your API key).
+4. The `artwork` Storage bucket is created automatically, public, on the first upload.
+5. Set `ADMIN_EMAILS` to your sign-in email so you can reach `/admin`.
+6. Set `CRON_SECRET` to any long random string. Optionally set `RESEND_API_KEY` + `EMAIL_FROM` so arrival notifications go out; sign-in works without them.
+7. Deploy. The build runs `prisma migrate deploy` before `next build`, so the schema is applied automatically. The seven built-in designs are inserted on first use.
+8. The cron in `vercel.json` runs `/api/cron/deliver` once a day (Hobby plan limit). Vercel sends the `CRON_SECRET` bearer header itself. The same job also runs in the background after page loads, so arrivals and emails don't wait for the cron. On Pro you can change the schedule to `0 * * * *`.
+9. Optional: seed demo holders once with `DATABASE_URL=... npm run db:seed`, and set `DEMO_BOTS=1` so they keep wandering cards moving.
 
 Leave `DEV_TIME_TRAVEL` unset in production.
 

@@ -7,7 +7,7 @@ export function LoginForm() {
   if (state?.ok === "sent") {
     return (
       <div style={{ marginTop: 22 }}>
-        <div className="ok">Check your inbox. The sign-in link is good for 20 minutes.</div>
+        <div className="ok">Check your inbox for a sign-in link. Give it a minute, and check spam the first time.</div>
         {state.devLink && (
           <div className="devbox">
             <b>No email provider configured.</b> Your link:<br />
