@@ -1,0 +1,191 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { db } from "@/lib/db";
+import { now } from "@/lib/clock";
+import { isCity } from "@/lib/cities";
+import { clearSession, getUser, requireUser, startLogin } from "./auth";
+import { openCard, passOn, reportHop, returnToPool, sendSealed, sendWandering } from "./cards";
+import { acceptFriend, removeFriend, requestFriend } from "./friends";
+import { buyDesign, buyStamp, createCheckout, setActive, stripeConfigured } from "./store";
+import { checkPhoneVerification, startPhoneVerification } from "./phone";
+
+export type FormState = { error?: string; ok?: string; devLink?: string } | null;
+
+const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
+
+/* ---------- auth ---------- */
+
+export async function loginAction(_: FormState, fd: FormData): Promise<FormState> {
+  const r = await startLogin(str(fd, "email"));
+  if (!r.ok) return { error: r.error };
+  return { ok: "sent", devLink: r.devLink };
+}
+
+export async function signOutAction() {
+  await clearSession();
+  redirect("/login");
+}
+
+export async function onboardAction(_: FormState, fd: FormData): Promise<FormState> {
+  const u = await getUser();
+  if (!u) redirect("/login");
+  const handle = str(fd, "handle").replace(/^@/, "").toLowerCase();
+  const displayName = str(fd, "displayName").slice(0, 40);
+  const city = str(fd, "city");
+  if (!/^[a-z0-9_]{3,20}$/.test(handle)) return { error: "Handles are 3 to 20 letters, numbers or underscores." };
+  if (!displayName) return { error: "Tell us the name to print on your cards." };
+  if (!isCity(city)) return { error: "Pick a posting city." };
+  const taken = await db.user.findFirst({ where: { handle, NOT: { id: u.id } } });
+  if (taken) return { error: `@${handle} is taken.` };
+  await db.user.update({ where: { id: u.id }, data: { handle, displayName, city } });
+  redirect("/mailbox");
+}
+
+export async function updateProfileAction(_: FormState, fd: FormData): Promise<FormState> {
+  const u = await requireUser();
+  const displayName = str(fd, "displayName").slice(0, 40);
+  const city = str(fd, "city");
+  if (!displayName) return { error: "Display name can't be empty." };
+  if (!isCity(city)) return { error: "Pick a posting city." };
+  await db.user.update({ where: { id: u.id }, data: { displayName, city } });
+  revalidatePath("/account");
+  return { ok: "Saved." };
+}
+
+export async function setPrefAction(key: "openToWandering" | "notifyOnArrival", value: boolean) {
+  const u = await requireUser();
+  await db.user.update({ where: { id: u.id }, data: { [key]: value } });
+  revalidatePath("/account");
+}
+
+export async function startPhoneAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireUser();
+  const phone = str(fd, "phone");
+  if (!/^\+?[0-9 ]{7,16}$/.test(phone)) return { error: "Enter the number with country code, like +65 9123 4567." };
+  const r = await startPhoneVerification(phone.replace(/\s+/g, ""));
+  return r.ok ? { ok: phone.replace(/\s+/g, "") } : { error: r.error };
+}
+
+export async function checkPhoneAction(_: FormState, fd: FormData): Promise<FormState> {
+  const u = await requireUser();
+  const ok = await checkPhoneVerification(str(fd, "phone"), str(fd, "code"));
+  if (!ok) return { error: "That code didn't match." };
+  await db.user.update({ where: { id: u.id }, data: { phoneVerified: true } });
+  revalidatePath("/account");
+  return { ok: "verified" };
+}
+
+/* ---------- cards ---------- */
+
+export async function sendCardAction(_: FormState, fd: FormData): Promise<FormState> {
+  const u = await requireUser();
+  const kind = str(fd, "kind") === "wandering" ? "wandering" : "sealed";
+  const designId = str(fd, "designId") || u.activeDesign;
+  const stampId = str(fd, "stampId") || u.activeStamp;
+  const t = await now();
+  const r =
+    kind === "sealed"
+      ? await sendSealed(u, { recipientId: str(fd, "recipientId"), designId, stampId, title: str(fd, "title"), body: str(fd, "body") }, t)
+      : await sendWandering(u, { designId, stampId, title: str(fd, "title"), body: str(fd, "body") }, t);
+  if (!r.ok) return { error: r.error };
+  await setActive(u.id, designId, stampId);
+  revalidatePath("/mailbox");
+  redirect(`/mailbox?kind=${kind}&box=out&sent=${r.value.id}`);
+}
+
+export async function openCardAction(cardId: string): Promise<FormState> {
+  const u = await requireUser();
+  const r = await openCard(cardId, u.id, await now());
+  revalidatePath(`/card/${cardId}`);
+  revalidatePath("/mailbox");
+  return r.ok ? { ok: "opened" } : { error: r.error };
+}
+
+export async function passOnAction(_: FormState, fd: FormData): Promise<FormState> {
+  const u = await requireUser();
+  const cardId = str(fd, "cardId");
+  const r = await passOn(cardId, u, str(fd, "note"), await now());
+  if (!r.ok) return { error: r.error };
+  revalidatePath("/mailbox");
+  redirect(`/mailbox?kind=wandering&box=out`);
+}
+
+export async function returnToPoolAction(cardId: string): Promise<FormState> {
+  const u = await requireUser();
+  const r = await returnToPool(cardId, u.id, await now());
+  if (!r.ok) return { error: r.error };
+  revalidatePath("/mailbox");
+  redirect(`/mailbox?kind=wandering&box=in`);
+}
+
+export async function reportHopAction(hopId: string, cardId: string): Promise<FormState> {
+  const u = await requireUser();
+  const r = await reportHop(hopId, u.id);
+  revalidatePath(`/card/${cardId}`);
+  return r.ok ? { ok: "Reported. The line has been removed and the card keeps moving." } : { error: r.error };
+}
+
+/* ---------- friends ---------- */
+
+export async function addFriendAction(_: FormState, fd: FormData): Promise<FormState> {
+  const u = await requireUser();
+  const r = await requestFriend(u.id, str(fd, "handle"));
+  revalidatePath("/account");
+  revalidatePath("/p", "layout");
+  return r.ok ? { ok: "Request sent." } : { error: r.error };
+}
+
+export async function acceptFriendAction(friendshipId: string) {
+  const u = await requireUser();
+  await acceptFriend(u.id, friendshipId);
+  revalidatePath("/account");
+}
+
+export async function removeFriendAction(otherId: string) {
+  const u = await requireUser();
+  await removeFriend(u.id, otherId);
+  revalidatePath("/account");
+  revalidatePath("/p", "layout");
+}
+
+/* ---------- store ---------- */
+
+export async function buyDesignAction(designId: string): Promise<FormState> {
+  const u = await requireUser();
+  const r = await buyDesign(u.id, designId);
+  revalidatePath("/store");
+  revalidatePath("/account");
+  return r.ok ? { ok: "Added to your collection." } : { error: r.error };
+}
+
+export async function buyStampAction(stampId: string): Promise<FormState> {
+  const u = await requireUser();
+  const r = await buyStamp(u.id, stampId);
+  revalidatePath("/store");
+  revalidatePath("/account");
+  return r.ok ? { ok: "Added to your collection." } : { error: r.error };
+}
+
+export async function setActiveAction(designId?: string, stampId?: string) {
+  const u = await requireUser();
+  await setActive(u.id, designId, stampId);
+}
+
+export async function checkoutAction(bookId: string): Promise<FormState> {
+  const u = await requireUser();
+  if (!stripeConfigured()) {
+    if (process.env.NODE_ENV !== "production" || process.env.DEV_TIME_TRAVEL === "1") {
+      // Dev convenience: no Stripe configured, so credit the book directly.
+      const postage = { book10: 10, book30: 30, book100: 100 }[bookId] ?? 0;
+      await db.user.update({ where: { id: u.id }, data: { postage: { increment: postage } } });
+      revalidatePath("/store");
+      return { ok: `Dev mode: ${postage} postage added.` };
+    }
+    return { error: "Postage books aren't on sale yet." };
+  }
+  const url = await createCheckout(u.id, u.email, bookId);
+  if (!url) return { error: "Couldn't start checkout." };
+  redirect(url);
+}

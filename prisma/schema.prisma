@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum CardType {
+  sealed
+  wandering
+}
+
+enum CardStatus {
+  pooled      // wandering card waiting for an eligible holder
+  in_transit
+  delivered
+  frozen      // removed from circulation after a report
+}
+
+enum FriendStatus {
+  pending
+  accepted
+}
+
+model User {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  handle           String?  @unique
+  displayName      String?
+  city             String?
+  phoneVerified    Boolean  @default(false)
+  openToWandering  Boolean  @default(false)
+  notifyOnArrival  Boolean  @default(true)
+  postage          Int      @default(24)
+  ownedDesigns     String[] @default(["classic"])
+  ownedStamps      String[] @default(["house"])
+  activeDesign     String   @default("classic")
+  activeStamp      String   @default("house")
+  postageGrantedAt DateTime @default(now())
+  isDemo           Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  sessions      Session[]
+  sentCards     Card[]        @relation("SentCards")
+  receivedCards Card[]        @relation("ReceivedCards")
+  hops          WanderingHop[]
+  friendsOut    Friendship[]  @relation("FriendshipUser")
+  friendsIn     Friendship[]  @relation("FriendshipFriend")
+  purchases     Purchase[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model LoginToken {
+  id        String    @id @default(cuid())
+  email     String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email])
+}
+
+model Friendship {
+  id        String       @id @default(cuid())
+  userId    String
+  friendId  String
+  status    FriendStatus @default(pending)
+  createdAt DateTime     @default(now())
+  user      User         @relation("FriendshipUser", fields: [userId], references: [id], onDelete: Cascade)
+  friend    User         @relation("FriendshipFriend", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@index([friendId])
+}
+
+model Card {
+  id            String     @id @default(cuid())
+  type          CardType
+  title         String
+  designId      String
+  stampId       String
+  senderId      String
+  sender        User       @relation("SentCards", fields: [senderId], references: [id])
+  senderCity    String
+  recipientId   String?
+  recipient     User?      @relation("ReceivedCards", fields: [recipientId], references: [id])
+  recipientCity String?
+  body          String
+  sentAt        DateTime   @default(now())
+  arrivesAt     DateTime?
+  openedAt      DateTime?
+  distanceKm    Int        @default(0)
+  status        CardStatus @default(in_transit)
+  notifiedAt    DateTime?
+  hopCount      Int        @default(0)
+  createdAt     DateTime   @default(now())
+
+  hops WanderingHop[]
+
+  @@index([recipientId, arrivesAt])
+  @@index([senderId])
+  @@index([type, status])
+}
+
+model WanderingHop {
+  id       String   @id @default(cuid())
+  cardId   String
+  card     Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  holderId String
+  holder   User     @relation(fields: [holderId], references: [id])
+  city     String
+  note     String
+  removed  Boolean  @default(false)
+  order    Int
+  addedAt  DateTime @default(now())
+
+  @@unique([cardId, order])
+  @@index([holderId])
+}
+
+model Purchase {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  sessionId String   @unique
+  postage   Int
+  amount    Int
+  currency  String
+  createdAt DateTime @default(now())
+}
