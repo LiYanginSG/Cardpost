@@ -5,13 +5,13 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "vercel-build": "prisma generate && prisma migrate deploy && next build",
+    "vercel-build": "node scripts/db-env.mjs prisma migrate deploy && prisma generate && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "postinstall": "prisma generate",
-    "db:migrate": "prisma migrate deploy",
+    "db:migrate": "node scripts/db-env.mjs prisma migrate deploy",
     "db:seed": "node --env-file-if-exists=.env --import tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "node scripts/db-env.mjs prisma studio"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",

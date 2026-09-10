@@ -38,11 +38,9 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/deli
 ## Deploy to Vercel with Supabase
 
 1. Push this repo and import it in Vercel.
-2. In Supabase, open **Project settings → Database → Connection string**. Set:
-   - `DATABASE_URL` to the **transaction pooler** string (port 6543) with `?pgbouncer=true&connection_limit=1` appended
-   - `DIRECT_URL` to the **session pooler** or direct string (port 5432), used only for migrations
-   If the Vercel–Supabase integration already injected `POSTGRES_PRISMA_URL` and `POSTGRES_URL_NON_POOLING`, copy those values into the two names above.
-3. From **Project settings → API**, set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. The `artwork` bucket is created automatically, public, on the first upload.
+2. Connect Supabase to the Vercel project through the **Supabase integration** (Vercel → Integrations, or Supabase → Project settings → Integrations). It injects `POSTGRES_PRISMA_URL`, `POSTGRES_URL_NON_POOLING`, `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, and the app reads those directly. Nothing to copy.
+   Without the integration, set `DATABASE_URL` (transaction pooler, port 6543, with `?pgbouncer=true&connection_limit=1`) and `DIRECT_URL` (session pooler or direct, port 5432) from **Project settings → Database**, and `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` from **Project settings → API**.
+3. The `artwork` Storage bucket is created automatically, public, on the first upload.
 4. Set `ADMIN_EMAILS` to your sign-in email so you can reach `/admin`.
 5. Set `APP_URL` to your Vercel URL, `CRON_SECRET` to any long random string, and `RESEND_API_KEY` + `EMAIL_FROM` (a verified sender on Resend).
 6. Deploy. The build runs `prisma migrate deploy` before `next build`, so the schema is applied automatically. The seven built-in designs are inserted on first use.
