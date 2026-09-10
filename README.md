@@ -26,7 +26,7 @@ npm run db:seed              # optional: demo holders + wandering cards so the w
 npm run dev
 ```
 
-With no `RESEND_API_KEY`, the sign-in link is printed to the terminal and shown on the login screen.
+With no `RESEND_API_KEY`, the sign-in link is printed to the terminal and shown on the login screen. That only happens outside production; a production deploy without Resend refuses to sign anyone in.
 With `DEV_TIME_TRAVEL=1`, a clock bar at the top lets you jump days ahead to watch cards arrive.
 
 To run the maintenance job by hand:

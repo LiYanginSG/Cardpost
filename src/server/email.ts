@@ -16,6 +16,7 @@ export async function sendEmail(to: string, subject: string, text: string, html?
 }
 
 export function appUrl(): string {
-  const u = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+  const u = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (vercel ? `https://${vercel}` : "http://localhost:3000");
   return u.replace(/\/$/, "");
 }

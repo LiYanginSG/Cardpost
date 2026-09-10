@@ -16,9 +16,15 @@ const TOKEN_MINUTES = 20;
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
+/** Sign-in links may only be shown on screen outside production, or when DEV_LOGIN_LINKS=1 is set on purpose. */
+const showLinksOnScreen = () => process.env.NODE_ENV !== "production" || process.env.DEV_LOGIN_LINKS === "1";
+
 export async function startLogin(rawEmail: string): Promise<{ ok: true; devLink?: string } | { ok: false; error: string }> {
   const email = rawEmail.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, error: "That doesn't look like an email address." };
+  if (!emailConfigured() && !showLinksOnScreen()) {
+    return { ok: false, error: "Sign-in email isn't set up yet. The site owner needs to add RESEND_API_KEY and EMAIL_FROM in Vercel." };
+  }
   const token = randomBytes(32).toString("base64url");
   await db.loginToken.create({
     data: { email, tokenHash: sha(token), expiresAt: new Date(Date.now() + TOKEN_MINUTES * 60_000) },
@@ -30,7 +36,7 @@ export async function startLogin(rawEmail: string): Promise<{ ok: true; devLink?
     `Tap to sign in to Cardpost:\n\n${link}\n\nThe link is good for ${TOKEN_MINUTES} minutes. If you didn't ask for it, ignore this email.`,
     `<p style="font-family:Courier,monospace">Tap to sign in to Cardpost:</p><p><a href="${link}">${link}</a></p><p style="font-family:Courier,monospace;color:#5C6885">Good for ${TOKEN_MINUTES} minutes. If you didn't ask for it, ignore this email.</p>`,
   );
-  return { ok: true, devLink: emailConfigured() ? undefined : link };
+  return { ok: true, devLink: emailConfigured() || !showLinksOnScreen() ? undefined : link };
 }
 
 /** Consumes a magic-link token, creating the user if needed. Returns the session id or null. */
