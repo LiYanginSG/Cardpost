@@ -6,6 +6,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { db } from "@/lib/db";
 import { sendEmail, appUrl, emailConfigured } from "./email";
 import { settleWeeklyPostage } from "./postage";
+import { maintenanceTick } from "./maintenance";
 import { now } from "@/lib/clock";
 import type { User } from "@prisma/client";
 
@@ -79,5 +80,6 @@ export async function requireUser(): Promise<User & { handle: string; displayNam
   const u = await getUser();
   if (!u) redirect("/login");
   if (!isOnboarded(u)) redirect("/onboarding");
+  maintenanceTick();
   return u as User & { handle: string; displayName: string; city: string };
 }
