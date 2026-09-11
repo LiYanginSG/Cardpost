@@ -56,6 +56,7 @@ const friendly = (msg: string) => {
   if (/password should be|weak password|at least/i.test(msg)) return "Use a longer password, at least 8 characters.";
   if (/email not confirmed/i.test(msg)) return "Confirm your email first. Check your inbox for the confirmation message.";
   if (/unsupported provider|provider is not enabled/i.test(msg)) return "That sign-in method isn't switched on in Supabase yet.";
+  if (/fetch failed|network|ENOTFOUND|ECONNREFUSED|timeout/i.test(msg)) return "Couldn't reach the sign-in service. Try again in a moment.";
   return msg;
 };
 
