@@ -5,6 +5,7 @@ import { getCatalogue } from "@/server/catalogue";
 import { DesignArt, StampArt } from "@/components/art";
 import { BuyButton } from "./buy-button";
 import { stripeConfigured } from "@/server/store";
+import { priceLabel } from "@/server/purchases";
 import { nextPostageDate } from "@/server/postage";
 import { fmtDate } from "@/lib/format";
 
@@ -33,7 +34,7 @@ export default async function StorePage({ searchParams }: { searchParams: Promis
           <div key={b.id} className="book">
             <b>{b.postage}</b>
             <small>{b.why}</small>
-            <BuyButton kind="book" id={b.id} cost={b.label} canAfford />
+            <BuyButton kind="book" id={b.id} cost={priceLabel(b.priceCents)} canAfford />
           </div>
         ))}
       </div>

@@ -54,7 +54,8 @@ Leave `DEV_TIME_TRAVEL` unset in production.
 
 ### Later
 
-- **Stripe**: set `STRIPE_SECRET_KEY` and add a webhook for `checkout.session.completed` pointing at `/api/stripe/webhook`; put its signing secret in `STRIPE_WEBHOOK_SECRET`.
+- **Stripe (website payments)**: set `STRIPE_SECRET_KEY` and `STORE_CURRENCY` (say `sgd`); in Stripe → Developers → Webhooks add an endpoint `https://your-app/api/stripe/webhook` listening for `checkout.session.completed`, and put its signing secret in `STRIPE_WEBHOOK_SECRET`. Buying a book opens Stripe Checkout; postage is credited by the webhook within seconds, once, however many times Stripe retries.
+- **RevenueCat (iOS / Android apps, later)**: Apple and Google require in-app purchase for postage. In RevenueCat create consumable products named `cardpost_postage_10`, `_30`, `_100`, identify the user to the SDK with the Cardpost `User.id`, and add a webhook to `https://your-app/api/revenuecat/webhook` with an Authorization header equal to `REVENUECAT_WEBHOOK_SECRET`. Purchases land in the same `Purchase` table and credit postage the same way.
 - **Moderation**: set `OPENAI_API_KEY` to use the moderation endpoint instead of the built-in word list.
 
 ## Invite links

@@ -237,7 +237,13 @@ export async function checkoutAction(bookId: string): Promise<FormState> {
     }
     return { error: "Postage books aren't on sale yet." };
   }
-  const url = await createCheckout(u.id, u.email, bookId);
+  let url: string | null = null;
+  try {
+    url = await createCheckout(u.id, u.email, bookId);
+  } catch (e) {
+    console.error("stripe checkout", e);
+    return { error: "Couldn't reach the payment service. Try again in a moment." };
+  }
   if (!url) return { error: "Couldn't start checkout." };
   redirect(url);
 }

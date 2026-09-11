@@ -141,9 +141,11 @@ model Purchase {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id])
-  sessionId String   @unique
+  provider  String   @default("stripe") // "stripe" (web) | "revenuecat" (iOS / Android)
+  sessionId String   @unique            // provider's transaction id; makes crediting idempotent
+  productId String?
   postage   Int
-  amount    Int
+  amount    Int                          // minor units, as reported by the provider
   currency  String
   createdAt DateTime @default(now())
 }

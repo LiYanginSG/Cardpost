@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { BOOKS } from "@/lib/catalogue";
 import { getCatalogue } from "./catalogue";
 import { appUrl } from "./email";
+import { creditPurchase, storeCurrency } from "./purchases";
 
 export const stripeConfigured = () => Boolean(process.env.STRIPE_SECRET_KEY);
 const stripe = () => new Stripe(process.env.STRIPE_SECRET_KEY as string);
@@ -45,28 +46,25 @@ export async function createCheckout(userId: string, email: string, bookId: stri
   const session = await stripe().checkout.sessions.create({
     mode: "payment",
     customer_email: email,
-    line_items: [{ quantity: 1, price_data: { currency: "usd", unit_amount: book.priceCents, product_data: { name: `Postage book · ${book.postage}`, description: book.why } } }],
+    line_items: [{ quantity: 1, price_data: { currency: storeCurrency(), unit_amount: book.priceCents, product_data: { name: `Postage book · ${book.postage}`, description: book.why } } }],
     metadata: { userId, bookId, postage: String(book.postage) },
+    client_reference_id: userId,
     success_url: `${appUrl()}/store?paid=1`,
     cancel_url: `${appUrl()}/store`,
   });
   return session.url;
 }
 
-/** Credits postage once per checkout session. Idempotent. */
-export async function handleStripeEvent(rawBody: string, signature: string): Promise<void> {
+/** Stripe webhook: credits postage once per completed, paid checkout session. */
+export async function handleStripeEvent(rawBody: string, signature: string): Promise<string> {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) throw new Error("STRIPE_WEBHOOK_SECRET missing");
   const event = stripe().webhooks.constructEvent(rawBody, signature, secret);
-  if (event.type !== "checkout.session.completed") return;
+  if (event.type !== "checkout.session.completed" && event.type !== "checkout.session.async_payment_succeeded") return "ignored";
   const s = event.data.object;
-  const userId = s.metadata?.userId;
+  if (s.payment_status !== "paid") return "unpaid";
+  const userId = s.metadata?.userId ?? s.client_reference_id ?? "";
   const postage = Number(s.metadata?.postage ?? 0);
-  if (!userId || !postage) return;
-  const exists = await db.purchase.findUnique({ where: { sessionId: s.id } });
-  if (exists) return;
-  await db.$transaction([
-    db.purchase.create({ data: { userId, sessionId: s.id, postage, amount: s.amount_total ?? 0, currency: s.currency ?? "usd" } }),
-    db.user.update({ where: { id: userId }, data: { postage: { increment: postage } } }),
-  ]);
+  if (!userId || !postage) return "ignored";
+  return creditPurchase({ userId, provider: "stripe", externalId: s.id, productId: s.metadata?.bookId, postage, amount: s.amount_total ?? 0, currency: s.currency ?? storeCurrency() });
 }
