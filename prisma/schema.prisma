@@ -43,6 +43,7 @@ model User {
   postageGrantedAt DateTime @default(now())
   isDemo           Boolean  @default(false)
   deletedAt        DateTime?
+  avatarUrl        String?
   createdAt        DateTime @default(now())
 
   sessions      Session[]

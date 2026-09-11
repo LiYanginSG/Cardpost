@@ -12,12 +12,13 @@ export function SealReveal({ cardId, front, back, opened, orient }: { cardId: st
   const router = useRouter();
   const [breaking, setBreaking] = useState(false);
   const [flipped, setFlipped] = useState(opened);
+  const [fresh, setFresh] = useState(false);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (opened && breaking) {
-      const t = setTimeout(() => { setFlipped(true); setBreaking(false); }, 80);
+      const t = setTimeout(() => { setFlipped(true); setBreaking(false); setFresh(true); }, 80);
       return () => clearTimeout(t);
     }
   }, [opened, breaking]);
@@ -27,7 +28,7 @@ export function SealReveal({ cardId, front, back, opened, orient }: { cardId: st
     setBreaking(true);
     if (typeof navigator !== "undefined" && "vibrate" in navigator) { try { navigator.vibrate?.([12, 40, 24]); } catch {} }
     start(async () => {
-      const r = await openCardAction(cardId);
+      const [r] = await Promise.all([openCardAction(cardId), new Promise((res) => setTimeout(res, 850))]);
       if (r?.error) { setError(r.error); setBreaking(false); return; }
       router.refresh();
     });
@@ -39,7 +40,10 @@ export function SealReveal({ cardId, front, back, opened, orient }: { cardId: st
         <div className={`card3d ${orient === "port" ? "port" : ""}`} style={{ cursor: "default" }}>
           <div className="face sealed-face">
             <button className={`seal-btn ${breaking ? "breaking" : ""}`} onClick={breakSeal} disabled={pending} aria-label="Break the seal">
-              <WaxSeal />
+              <span className="seal">
+                <WaxSeal className="half l" />
+                <WaxSeal className="half r" />
+              </span>
               <span>{breaking ? "breaking…" : "break the seal"}</span>
             </button>
           </div>
@@ -50,7 +54,7 @@ export function SealReveal({ cardId, front, back, opened, orient }: { cardId: st
   }
 
   return (
-    <div className="card-wrap fade-in">
+    <div className={`card-wrap fade-in ${fresh ? "reveal-ink" : ""}`}>
       <div className={`card3d ${orient === "port" ? "port" : ""} ${flipped ? "flipped" : ""}`} onClick={() => setFlipped((f) => !f)} role="button" tabIndex={0} aria-label="Turn the card over" onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setFlipped((f) => !f); } }}>
         <div className="face front">{front}</div>
         <div className="face back">{back}</div>

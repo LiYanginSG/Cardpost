@@ -3,30 +3,33 @@ import type { Design, Stamp } from "@/lib/catalogue";
 import { fmtDate, handSize } from "@/lib/format";
 import { fmtKm } from "@/lib/geo";
 
-/** Front face: artwork only, plus a small route caption. */
-export function PostcardFront({ design, fromCity, toCity, km }: { design: Design; fromCity: string; toCity?: string | null; km?: number }) {
+/** Front face: artwork only. The route is printed on the back. */
+export function PostcardFront({ design }: { design: Design; fromCity?: string; toCity?: string | null; km?: number }) {
   return (
     <div className="front-art">
       <DesignArt design={design} />
-      <div className="front-cap">
-        {fromCity}{toCity ? ` → ${toCity}` : ""}{km ? ` · ${fmtKm(km)}` : ""}
-      </div>
     </div>
   );
 }
 
 /** Back face: message in a handwriting face, address block with stamp cancelled by the postmark. */
-export function PostcardBack({ design: d, stamp: s, body, signature, toName, toCity, postmarkCity, postmarkDate }: {
-  design: Design; stamp: Stamp; body: string; signature: string; toName: string; toCity: string; postmarkCity: string; postmarkDate: Date | string;
+export function PostcardBack({ design: d, stamp: s, body, signature, toName, toCity, postmarkCity, postmarkDate, fromCity, km }: {
+  design: Design; stamp: Stamp; body: string; signature: string; toName: string; toCity: string; postmarkCity: string; postmarkDate: Date | string; fromCity?: string; km?: number;
 }) {
   return (
     <div className={`back-grid ${d.orient === "port" ? "port" : ""}`}>
       <div className="msg">
-        <p style={{ fontSize: handSize(body) }}>{body}</p>
+        <p style={{ fontSize: `${handSize(body)}cqw` }}>{body}</p>
         <div className="sig">— {signature}</div>
       </div>
       <div className="divider" />
       <div className="addr">
+        <div className="imprint">
+          <b>POST CARD</b>
+          {(fromCity ?? postmarkCity).toUpperCase()}
+          {toCity ? <><br />{"\u2192 "}{toCity.toUpperCase()}</> : null}
+          {km ? <><br />{fmtKm(km)}</> : null}
+        </div>
         <StampArt stamp={s} className="stamp" cancelled />
         <Postmark city={postmarkCity} date={fmtDate(postmarkDate)} className="postmark" />
         <div className="lines"><i /><i /><i /></div>

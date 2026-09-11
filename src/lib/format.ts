@@ -7,10 +7,10 @@ export const fmtMonth = (d: Date | string) =>
 export const fmtNum = (n: number) => n.toLocaleString("en-US");
 export const initials = (n: string) =>
   n.split(/\s+/).map((w) => w[0] ?? "").join("").slice(0, 2).toUpperCase();
-/** Handwriting size scales down as the message lengthens so it never overflows. */
+/** Handwriting size in cqw (percent of card width). Scales down as the message lengthens so it never overflows. */
 export const handSize = (t: string) => {
   const n = t.length;
-  return n < 70 ? 20 : n < 120 ? 17 : n < 180 ? 15 : 13.5;
+  return n < 70 ? 5.6 : n < 120 ? 4.8 : n < 180 ? 4.2 : 3.75;
 };
 export const daysLeft = (arrivesAt: Date, now: Date) =>
   Math.max(0, Math.ceil((arrivesAt.getTime() - now.getTime()) / 86_400_000));

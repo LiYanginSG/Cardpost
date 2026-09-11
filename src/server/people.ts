@@ -37,6 +37,7 @@ async function anonymise(userId: string, now: Date) {
         openToWandering: false,
         notifyOnArrival: false,
         phoneVerified: false,
+        avatarUrl: null,
       },
     }),
   ]);
@@ -72,7 +73,7 @@ export async function listPeople() {
   return db.user.findMany({
     where: { deletedAt: null, isDemo: false },
     orderBy: { createdAt: "desc" },
-    select: { id: true, email: true, handle: true, displayName: true, city: true, createdAt: true, postage: true, _count: { select: { sentCards: true } } },
+    select: { id: true, email: true, handle: true, displayName: true, city: true, createdAt: true, postage: true, avatarUrl: true, _count: { select: { sentCards: true } } },
     take: 500,
   });
 }

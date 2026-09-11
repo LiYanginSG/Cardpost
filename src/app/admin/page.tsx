@@ -6,7 +6,8 @@ import { DesignArt, StampArt } from "@/components/art";
 import { ItemControls, NewDesignForm, NewStampForm } from "./forms";
 import { DeletePersonButton } from "./people";
 import { listPeople } from "@/server/people";
-import { fmtDate, initials } from "@/lib/format";
+import { fmtDate } from "@/lib/format";
+import { Avatar } from "@/components/avatar";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export default async function AdminPage() {
       <p className="small" style={{ color: "var(--ink-2)" }}>Everyone with an account. Deleting removes their sign-in from Supabase as well. Deleting in Supabase alone also works; the app catches up within the hour.</p>
       {people.map((p) => (
         <div key={p.id} className="person">
-          <div className="avatar">{initials(p.displayName ?? p.email)}</div>
+          <Avatar name={p.displayName ?? p.email} url={p.avatarUrl} />
           <div className="t">
             <b>{p.handle ? <Link href={`/p/${p.handle}`}>{p.displayName}</Link> : <span>{p.email} · not set up yet</span>}</b>
             <span>{p.handle ? `@${p.handle} · ${p.city} · ` : ""}{p.email} · joined {fmtDate(p.createdAt)} · {p._count.sentCards} sent · {p.postage} postage</span>

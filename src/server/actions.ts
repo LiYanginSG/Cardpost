@@ -9,8 +9,8 @@ import { clearSession, getUser, requireUser, startLogin, signInWithPassword, sig
 import { openCard, passOn, recallCard, reportHop, returnToPool, sendSealed, sendWandering } from "./cards";
 import { acceptFriend, removeFriend, requestFriend } from "./friends";
 import { buyDesign, buyStamp, createCheckout, setActive, stripeConfigured } from "./store";
-import { checkPhoneVerification, startPhoneVerification } from "./phone";
 import { sendWelcomeCard } from "./welcome";
+import { uploadArtwork } from "./storage";
 
 export type FormState = { error?: string; ok?: string; devLink?: string } | null;
 
@@ -69,7 +69,7 @@ export async function onboardAction(_: FormState, fd: FormData): Promise<FormSta
   const city = str(fd, "city");
   if (!/^[a-z0-9_]{3,20}$/.test(handle)) return { error: "Handles are 3 to 20 letters, numbers or underscores." };
   if (!displayName) return { error: "Tell us the name to print on your cards." };
-  if (!isCity(city)) return { error: "Pick a posting city." };
+  if (!isCity(city)) return { error: "Pick a city from the list. Any city with 100,000 people or more is in there." };
   const taken = await db.user.findFirst({ where: { handle, NOT: { id: u.id } } });
   if (taken) return { error: `@${handle} is taken.` };
   const firstTime = !u.city;
@@ -83,33 +83,36 @@ export async function updateProfileAction(_: FormState, fd: FormData): Promise<F
   const displayName = str(fd, "displayName").slice(0, 40);
   const city = str(fd, "city");
   if (!displayName) return { error: "Display name can't be empty." };
-  if (!isCity(city)) return { error: "Pick a posting city." };
+  if (!isCity(city)) return { error: "Pick a city from the list. Any city with 100,000 people or more is in there." };
   await db.user.update({ where: { id: u.id }, data: { displayName, city } });
   revalidatePath("/account");
   return { ok: "Saved." };
+}
+
+export async function uploadAvatarAction(fd: FormData): Promise<FormState> {
+  const u = await requireUser();
+  if (fd.get("remove") === "1") {
+    await db.user.update({ where: { id: u.id }, data: { avatarUrl: null } });
+    revalidatePath("/account");
+    return { ok: "Picture removed." };
+  }
+  const f = fd.get("avatar");
+  if (!(f instanceof File) || f.size === 0) return { error: "Choose a picture." };
+  if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) return { error: "Use a JPG, PNG or WebP." };
+  if (f.size > 2 * 1024 * 1024) return { error: "Keep it under 2 MB." };
+  const ext = f.type === "image/png" ? "png" : f.type === "image/webp" ? "webp" : "jpg";
+  let url: string;
+  try { url = await uploadArtwork(`avatars/${u.id}-${Date.now()}.${ext}`, await f.arrayBuffer(), f.type); } catch (e) { return { error: (e as Error).message }; }
+  await db.user.update({ where: { id: u.id }, data: { avatarUrl: url } });
+  revalidatePath("/account");
+  revalidatePath("/p", "layout");
+  return { ok: "Picture updated." };
 }
 
 export async function setPrefAction(key: "openToWandering" | "notifyOnArrival", value: boolean) {
   const u = await requireUser();
   await db.user.update({ where: { id: u.id }, data: { [key]: value } });
   revalidatePath("/account");
-}
-
-export async function startPhoneAction(_: FormState, fd: FormData): Promise<FormState> {
-  await requireUser();
-  const phone = str(fd, "phone");
-  if (!/^\+?[0-9 ]{7,16}$/.test(phone)) return { error: "Enter the number with country code, like +65 9123 4567." };
-  const r = await startPhoneVerification(phone.replace(/\s+/g, ""));
-  return r.ok ? { ok: phone.replace(/\s+/g, "") } : { error: r.error };
-}
-
-export async function checkPhoneAction(_: FormState, fd: FormData): Promise<FormState> {
-  const u = await requireUser();
-  const ok = await checkPhoneVerification(str(fd, "phone"), str(fd, "code"));
-  if (!ok) return { error: "That code didn't match." };
-  await db.user.update({ where: { id: u.id }, data: { phoneVerified: true } });
-  revalidatePath("/account");
-  return { ok: "verified" };
 }
 
 /* ---------- cards ---------- */

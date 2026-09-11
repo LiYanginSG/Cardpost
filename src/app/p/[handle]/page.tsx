@@ -9,7 +9,8 @@ import { getCatalogue } from "@/server/catalogue";
 import { DesignArt, StampArt } from "@/components/art";
 import { DesignThumb } from "@/components/postcard";
 import { deliveryDays, fmtKm, haversineKm, postageCost } from "@/lib/geo";
-import { fmtDate, fmtDateYear, fmtNum, initials } from "@/lib/format";
+import { fmtDate, fmtDateYear, fmtNum } from "@/lib/format";
+import { Avatar } from "@/components/avatar";
 import { AcceptButton, RemoveButton } from "@/app/account/client";
 import { ProfileAddButton } from "./add-button";
 
@@ -36,7 +37,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ handle
   return (
     <AppShell user={me} active="account">
       <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-        <div className="avatar">{initials(p.displayName)}</div>
+        <Avatar name={p.displayName} url={p.avatarUrl} size={64} />
         <div><h1>{p.displayName}</h1><div className="muted">@{p.handle} · {p.city} · since {fmtDateYear(p.createdAt)}{p.isDemo ? " · demo account" : ""}</div></div>
       </div>
 

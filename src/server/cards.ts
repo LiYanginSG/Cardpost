@@ -111,7 +111,6 @@ async function pickHolder(excludeIds: string[], fromCity: string): Promise<User 
   const base: Prisma.UserWhereInput = {
     id: { notIn: excludeIds },
     openToWandering: true,
-    phoneVerified: true,
     city: { not: null },
     handle: { not: null },
     deletedAt: null,
@@ -164,7 +163,6 @@ export async function sendWandering(
   if (err) return fail(err);
   if (!title) return fail("Wandering cards need a title. It's how people find this card on the wall.");
   if (!user.openToWandering) return fail("Open yourself to wandering mail in Account first.");
-  if (!user.phoneVerified) return fail("Verify your phone number before posting to the wandering pool.");
   if ((await wanderingSentToday(user.id, now)) >= WANDERING_DAILY_LIMIT) return fail(`You've posted ${WANDERING_DAILY_LIMIT} wandering cards today. Try again tomorrow.`);
 
   const mod = await moderate(`${title}\n${body}`);

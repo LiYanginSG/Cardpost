@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { sendCardAction, type FormState } from "@/server/actions";
 import type { Design, Stamp } from "@/lib/catalogue";
 import { deliveryDays, haversineKm, postageCost, fmtKm } from "@/lib/geo";
@@ -9,7 +9,7 @@ import { DesignArt, StampArt } from "@/components/art";
 import { PostcardBack, PostcardFront } from "@/components/postcard";
 import { FlipCard } from "@/components/flip-card";
 
-type U = { id: string; displayName: string; city: string; postage: number; ownedDesigns: string[]; ownedStamps: string[]; activeDesign: string; activeStamp: string; openToWandering: boolean; phoneVerified: boolean };
+type U = { id: string; displayName: string; city: string; postage: number; ownedDesigns: string[]; ownedStamps: string[]; activeDesign: string; activeStamp: string; openToWandering: boolean };
 type F = { id: string; displayName: string; city: string };
 
 export function Composer({ user, friends, designs, stamps, initialTo, initialKind, nowIso, wanderingLeft }: { user: U; friends: F[]; designs: Design[]; stamps: Stamp[]; initialTo?: string; initialKind: "sealed" | "wandering"; nowIso: string; wanderingLeft: number }) {
@@ -20,6 +20,8 @@ export function Composer({ user, friends, designs, stamps, initialTo, initialKin
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [state, action, pending] = useActionState<FormState, FormData>(sendCardAction, null);
+  const [flying, setFlying] = useState(false);
+  useEffect(() => { if (state?.error) setFlying(false); }, [state]);
 
   const recipient = friends.find((f) => f.id === to);
   const toCity = kind === "sealed" ? recipient?.city : undefined;
@@ -32,11 +34,11 @@ export function Composer({ user, friends, designs, stamps, initialTo, initialKin
   const owned = designs;
   const ownedStamps = stamps;
   const previewTitle = title || body.split(/[.!?\n]/)[0].slice(0, MAX_TITLE);
-  const wanderingBlocked = kind === "wandering" && (!user.openToWandering || !user.phoneVerified);
+  const wanderingBlocked = kind === "wandering" && !user.openToWandering;
   const canSend = body.trim().length > 0 && (kind === "sealed" ? Boolean(recipient) && user.postage >= (cost ?? 0) : !wanderingBlocked && title.trim().length > 0 && wanderingLeft > 0 && user.postage >= 1);
 
   return (
-    <form action={action}>
+    <form action={action} onSubmit={() => setFlying(true)}>
       <input type="hidden" name="kind" value={kind} />
       <input type="hidden" name="designId" value={designId} />
       <input type="hidden" name="stampId" value={stampId} />
@@ -49,9 +51,11 @@ export function Composer({ user, friends, designs, stamps, initialTo, initialKin
       <p className="hint">{kind === "sealed" ? "One recipient from your address book. Only they can read it, and only once it lands." : "Goes to a random stranger who has opted in. They can sign it and send it on. Checked before it leaves."}</p>
 
       <h2>Preview</h2>
-      <FlipCard key={d.orient} orient={d.orient}
-        front={<PostcardFront design={d} fromCity={user.city} toCity={kind === "sealed" ? toCity : "somewhere"} km={km || undefined} />}
-        back={<PostcardBack design={d} stamp={st} body={body || "Your message will appear here, in your own hand."} signature={user.displayName} toName={kind === "sealed" ? recipient?.displayName ?? "—" : "whoever holds this"} toCity={kind === "sealed" ? toCity ?? "" : "the world"} postmarkCity={user.city} postmarkDate={nowIso} />} />
+      <div className={flying ? "fly" : ""} style={{ display: "contents" }}>
+      <FlipCard key={d.orient} orient={d.orient} wrapClass={flying ? "fly" : ""}
+        front={<PostcardFront design={d} />}
+        back={<PostcardBack design={d} stamp={st} body={body || "Your message will appear here, in your own hand."} signature={user.displayName} toName={kind === "sealed" ? recipient?.displayName ?? "—" : "whoever holds this"} toCity={kind === "sealed" ? toCity ?? "" : "the world"} postmarkCity={user.city} postmarkDate={nowIso} fromCity={user.city} km={km || undefined} />} />
+      </div>
 
       <h2>Postcard</h2>
       <div className="scroller" role="radiogroup" aria-label="Postcard design">
@@ -86,7 +90,7 @@ export function Composer({ user, friends, designs, stamps, initialTo, initialKin
         </div>
       ) : wanderingBlocked ? (
         <div className="warn">
-          To post to the wandering pool you need to {!user.openToWandering && "open yourself to wandering mail"}{!user.openToWandering && !user.phoneVerified && " and "}{!user.phoneVerified && "verify your phone number"}. <Link className="link" href="/account#preferences">Do that in Account</Link>.
+          To post to the wandering pool, open yourself to wandering mail first. <Link className="link" href="/account#preferences">Do that in Account</Link>.
         </div>
       ) : (
         <p className="hint">A random stranger who has opted in. You can't choose who, and neither can anyone else. {wanderingLeft} of 3 wandering cards left today.</p>

@@ -24,7 +24,7 @@ export default async function WritePage({ searchParams }: { searchParams: Promis
         <div className="warn">Your address book is empty, so sealed cards have nowhere to go. <Link className="link" href="/account#address-book">Add a friend by handle</Link>.</div>
       )}
       <Composer
-        user={{ id: user.id, displayName: user.displayName, city: user.city, postage: user.postage, ownedDesigns: user.ownedDesigns, ownedStamps: user.ownedStamps, activeDesign: user.activeDesign, activeStamp: user.activeStamp, openToWandering: user.openToWandering, phoneVerified: user.phoneVerified }}
+        user={{ id: user.id, displayName: user.displayName, city: user.city, postage: user.postage, ownedDesigns: user.ownedDesigns, ownedStamps: user.ownedStamps, activeDesign: user.activeDesign, activeStamp: user.activeStamp, openToWandering: user.openToWandering }}
         designs={cat.designs.filter((d) => user.ownedDesigns.includes(d.id))}
         stamps={cat.stamps.filter((s) => user.ownedStamps.includes(s.id))}
         friends={friends.map((f) => ({ id: f.id, displayName: f.displayName, city: f.city }))}

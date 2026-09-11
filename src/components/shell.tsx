@@ -48,7 +48,7 @@ export async function AppShell({ user, active, children }: { user: User; active?
               <span className="base" />
             </Link>
           </header>
-          {children}
+          <div className="page">{children}</div>
         </main>
       </div>
       <nav className="tabbar" aria-label="Primary">

@@ -4,14 +4,15 @@ import { requireUser } from "@/server/auth";
 import { db } from "@/lib/db";
 import { now } from "@/lib/clock";
 import { listFriends, pendingRequests } from "@/server/friends";
-import { phoneConfigured } from "@/server/phone";
 import { supabaseAuthConfigured } from "@/server/supabase";
 import { nextPostageDate } from "@/server/postage";
 import { getCatalogue } from "@/server/catalogue";
 import { isAdmin } from "@/server/admin";
 import { DesignArt, StampArt } from "@/components/art";
-import { AcceptButton, AddFriend, PhoneVerify, ProfileForm, RemoveButton, SignOut, Toggle } from "./client";
-import { fmtDate, fmtDateYear, fmtNum, initials } from "@/lib/format";
+import { AcceptButton, AddFriend, ProfileForm, RemoveButton, SignOut, Toggle } from "./client";
+import { AvatarUpload } from "./avatar-upload";
+import { Avatar } from "@/components/avatar";
+import { fmtDate, fmtDateYear, fmtNum } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Account" };
@@ -41,15 +42,15 @@ export default async function AccountPage() {
   return (
     <AppShell user={user} active="account">
       <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-        <div className="avatar">{initials(user.displayName)}</div>
+        <Avatar name={user.displayName} url={user.avatarUrl} size={64} />
         <div><h1>{user.displayName}</h1><div className="muted">@{user.handle} · {user.city} · member since {fmtDateYear(user.createdAt)}</div></div>
       </div>
+      <AvatarUpload hasAvatar={Boolean(user.avatarUrl)} />
 
       <h2>Account</h2>
       <div className="kv"><span>Email</span><div className="v">{user.email}</div></div>
       {supabaseAuthConfigured() && <div className="kv"><span>Password</span><div className="v"><Link className="link" href="/account/password">Change password</Link></div></div>}
       <div className="kv"><span>Postage</span><div className="v">{user.postage} · next 12 on {fmtDate(nextPostageDate(user))}</div></div>
-      <PhoneVerify verified={user.phoneVerified} devMode={!phoneConfigured()} />
       <div style={{ marginTop: 6 }}><ProfileForm displayName={user.displayName} city={user.city} /></div>
 
       <h2>Collection</h2>
@@ -71,19 +72,19 @@ export default async function AccountPage() {
       {pending.incoming.length > 0 && (
         <><div className="group">Wants to write to you</div>
           {pending.incoming.map((p) => (
-            <div key={p.id} className="person"><div className="avatar">{initials(p.displayName)}</div><div className="t"><b><Link href={`/p/${p.handle}`}>{p.displayName}</Link></b><span>@{p.handle} · {p.city}</span></div><AcceptButton id={p.id} /><RemoveButton otherId={p.userId} label="Ignore" /></div>
+            <div key={p.id} className="person"><Avatar name={p.displayName} url={p.avatarUrl} /><div className="t"><b><Link href={`/p/${p.handle}`}>{p.displayName}</Link></b><span>@{p.handle} · {p.city}</span></div><AcceptButton id={p.id} /><RemoveButton otherId={p.userId} label="Ignore" /></div>
           ))}</>
       )}
       {pending.outgoing.length > 0 && (
         <><div className="group">Waiting on them</div>
           {pending.outgoing.map((p) => (
-            <div key={p.id} className="person"><div className="avatar">{initials(p.displayName)}</div><div className="t"><b><Link href={`/p/${p.handle}`}>{p.displayName}</Link></b><span>@{p.handle} · {p.city} · pending</span></div><RemoveButton otherId={p.userId} label="Cancel" /></div>
+            <div key={p.id} className="person"><Avatar name={p.displayName} url={p.avatarUrl} /><div className="t"><b><Link href={`/p/${p.handle}`}>{p.displayName}</Link></b><span>@{p.handle} · {p.city} · pending</span></div><RemoveButton otherId={p.userId} label="Cancel" /></div>
           ))}</>
       )}
       <div className="group">Friends · {friends.length}</div>
       {friends.length === 0 && <div className="empty"><b>Nobody yet.</b>Ask a friend for their handle. Yours is @{user.handle}.</div>}
       {friends.map((f) => (
-        <div key={f.id} className="person"><div className="avatar">{initials(f.displayName)}</div><div className="t"><b><Link href={`/p/${f.handle}`}>{f.displayName}</Link></b><span>@{f.handle} · {f.city}</span></div><Link href={`/write?to=${f.id}`} className="btn btn-sm">Write</Link><RemoveButton otherId={f.id} /></div>
+        <div key={f.id} className="person"><Avatar name={f.displayName} url={f.avatarUrl} /><div className="t"><b><Link href={`/p/${f.handle}`}>{f.displayName}</Link></b><span>@{f.handle} · {f.city}</span></div><Link href={`/write?to=${f.id}`} className="btn btn-sm">Write</Link><RemoveButton otherId={f.id} /></div>
       ))}
 
       <h2>Postal record</h2>
@@ -96,7 +97,7 @@ export default async function AccountPage() {
       </div>
 
       <h2 id="preferences">Preferences</h2>
-      <Toggle prefKey="openToWandering" value={user.openToWandering} label="Open to wandering mail" sub="Strangers' public cards can land with you. Needs a verified phone to post your own." />
+      <Toggle prefKey="openToWandering" value={user.openToWandering} label="Open to wandering mail" sub="Strangers' public cards can land with you, and you can post your own." />
       <Toggle prefKey="notifyOnArrival" value={user.notifyOnArrival} label="Email me when a card arrives" sub="The only message Cardpost ever sends. Nothing about cards in transit." />
 
       {isAdmin(user) && (

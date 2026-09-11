@@ -8,7 +8,7 @@ export async function areFriends(a: string, b: string): Promise<boolean> {
   return n > 0;
 }
 
-export type FriendRow = { id: string; handle: string; displayName: string; city: string; since: Date };
+export type FriendRow = { id: string; handle: string; displayName: string; city: string; since: Date; avatarUrl: string | null };
 
 /** Accepted friends, either direction. */
 export async function listFriends(userId: string): Promise<FriendRow[]> {
@@ -19,7 +19,7 @@ export async function listFriends(userId: string): Promise<FriendRow[]> {
   });
   return rows.map((r) => {
     const o = r.userId === userId ? r.friend : r.user;
-    return { id: o.id, handle: o.handle ?? "", displayName: o.displayName ?? o.email, city: o.city ?? "", since: r.createdAt };
+    return { id: o.id, handle: o.handle ?? "", displayName: o.displayName ?? o.email, city: o.city ?? "", since: r.createdAt, avatarUrl: o.avatarUrl };
   });
 }
 
@@ -27,8 +27,8 @@ export async function pendingRequests(userId: string) {
   const incoming = await db.friendship.findMany({ where: { friendId: userId, status: "pending" }, include: { user: true } });
   const outgoing = await db.friendship.findMany({ where: { userId, status: "pending" }, include: { friend: true } });
   return {
-    incoming: incoming.map((r) => ({ id: r.id, userId: r.user.id, handle: r.user.handle ?? "", displayName: r.user.displayName ?? "", city: r.user.city ?? "" })),
-    outgoing: outgoing.map((r) => ({ id: r.id, userId: r.friend.id, handle: r.friend.handle ?? "", displayName: r.friend.displayName ?? "", city: r.friend.city ?? "" })),
+    incoming: incoming.map((r) => ({ id: r.id, userId: r.user.id, handle: r.user.handle ?? "", displayName: r.user.displayName ?? "", city: r.user.city ?? "", avatarUrl: r.user.avatarUrl })),
+    outgoing: outgoing.map((r) => ({ id: r.id, userId: r.friend.id, handle: r.friend.handle ?? "", displayName: r.friend.displayName ?? "", city: r.friend.city ?? "", avatarUrl: r.friend.avatarUrl })),
   };
 }
 

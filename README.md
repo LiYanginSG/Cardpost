@@ -13,7 +13,7 @@ The delay is the product. There is no deliver-now.
 - Supabase Storage for uploaded postcard and stamp artwork; the catalogue lives in the database and is managed at `/admin`
 - Sign-in with Supabase Auth: email + password, email magic link, and Google (optional). Users appear under Authentication in Supabase and as profile rows in the User table
 - A maintenance job flips arrived cards to delivered and sends the one email this app sends. It runs from a daily Vercel cron (the Hobby plan limit) and opportunistically after page loads, at most every 15 minutes
-- Stripe Checkout for postage books, OpenAI moderation for wandering text, Twilio Verify for phone verification — all optional, all gated on env vars
+- Stripe Checkout for postage books and OpenAI moderation for wandering text — both optional, gated on env vars
 - Installable PWA. The API surface lives in `src/server/*` behind thin server actions, so a React Native / Expo app can share it later.
 
 ## Run locally
@@ -56,13 +56,14 @@ Leave `DEV_TIME_TRAVEL` unset in production.
 
 - **Stripe**: set `STRIPE_SECRET_KEY` and add a webhook for `checkout.session.completed` pointing at `/api/stripe/webhook`; put its signing secret in `STRIPE_WEBHOOK_SECRET`.
 - **Moderation**: set `OPENAI_API_KEY` to use the moderation endpoint instead of the built-in word list.
-- **Phone verification**: set the three `TWILIO_*` vars. Without them, verification is a dev toggle (any code passes).
 
 ## People
 
 The admin page lists everyone with an account. **Delete** removes their sign-in from Supabase Auth and retires their profile here. Deleting a user directly in Supabase's Authentication page also works: the maintenance job notices within the hour and retires the profile.
 
 ## Adding postcards and stamps
+
+Profile pictures are uploaded from Account, squared and shrunk to 256px in the browser, and stored in the same Supabase bucket under `avatars/`.
 
 Sign in with an email listed in `ADMIN_EMAILS`, open **Account → Manage catalogue** (`/admin`), and upload the artwork file with a name, artist, cost and orientation. It appears in the store immediately. From the same page you can feature, retire, reprice, or gift a design to every existing account.
 
@@ -76,10 +77,11 @@ Sign in with an email listed in `ADMIN_EMAILS`, open **Account → Manage catalo
 | Rule | Where it lives |
 |---|---|
 | Delivery days = distance / 1100, clamped 2–14 | `src/lib/geo.ts` |
+| Posting city is any city with 100,000+ people (GeoNames via all-the-cities), searched in a typeahead | `src/lib/cities.ts`, `src/app/api/cities` |
 | Postage = ceil(distance / 1500), clamped 1–8 | `src/lib/geo.ts` |
 | Recipient sees nothing before arrival | every recipient query filters `arrivesAt <= now` (`src/server/cards.ts`) |
 | Sealed cards only to your address book | `sendSealed` refuses non-friends |
-| Wandering recipient is random; 3 per day; phone verified; moderated at send | `sendWandering` |
+| Wandering recipient is random; 3 per day; moderated at send | `sendWandering` |
 | 12 free postage every Sunday, capped at 40, whether or not you open the app | `src/server/postage.ts` |
 | Design and stamp are frozen on the card at send time | `Card.designId`, `Card.stampId` |
 | Reported wandering lines are stripped; the card keeps moving | `reportHop` |
@@ -91,7 +93,7 @@ Sign in with an email listed in `ADMIN_EMAILS`, open **Account → Manage catalo
 
 ```
 prisma/          schema, migrations, seed
-src/lib/         pure logic: cities, distance formulas, catalogue, clock, formatting
+src/lib/         pure logic: cities (generated dataset in cities-data.ts), distance formulas, catalogue, clock, formatting
 src/server/      auth, cards, friends, store, catalogue, storage, admin, cron, email, moderation, phone (server-only)
 src/server/actions.ts   server actions used by the pages
 src/components/  postcard faces, artwork, seal reveal, map, shell

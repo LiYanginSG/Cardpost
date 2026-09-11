@@ -28,7 +28,7 @@ export default async function WallPage() {
       {rows.length === 0 && <div className="empty"><b>No wandering cards yet.</b>Post one from <Link className="link" href="/write?kind=wandering">Write</Link> and it will be the first.</div>}
       <div className="list">
         {rows.map((r, i) => (
-          <div key={r.card.id} className="row" style={{ gridTemplateColumns: "56px 26px 1fr auto" }}>
+          <div key={r.card.id} className="row" style={{ gridTemplateColumns: "56px 26px 1fr auto", ["--i" as string]: Math.min(i, 10) }}>
             <DesignThumb design={cat.design(r.card.designId)} />
             <span className={`rank ${i < 3 ? "top" : ""}`}>{i + 1}</span>
             <div className="t">

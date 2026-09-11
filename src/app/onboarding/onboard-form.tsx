@@ -1,7 +1,7 @@
 "use client";
 import { useActionState } from "react";
 import { onboardAction, type FormState } from "@/server/actions";
-import { CITIES } from "@/lib/cities";
+import { CityPicker } from "@/components/city-picker";
 
 export function OnboardForm({ email }: { email: string }) {
   const [state, action, pending] = useActionState<FormState, FormData>(onboardAction, null);
@@ -18,10 +18,7 @@ export function OnboardForm({ email }: { email: string }) {
       </div>
       <div className="field">
         <label htmlFor="city">Posting city</label>
-        <select id="city" name="city" required defaultValue="">
-          <option value="" disabled>Choose a city</option>
-          {CITIES.map((c) => <option key={c.name} value={c.name}>{c.name} · {c.cc}</option>)}
-        </select>
+        <CityPicker />
       </div>
       {state?.error && <div className="warn">{state.error}</div>}
       <button className="btn btn-primary btn-block" disabled={pending} style={{ marginTop: 16 }}>{pending ? "Saving…" : "Open my mailbox"}</button>

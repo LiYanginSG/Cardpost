@@ -45,11 +45,11 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
         {isRecipient ? (
           <SealReveal cardId={c.id} opened={opened} orient={d.orient}
             front={<PostcardFront design={d} fromCity={c.senderCity} toCity={c.recipientCity} km={c.distanceKm} />}
-            back={canSeeBody ? <PostcardBack design={d} stamp={s} body={c.body} signature={c.sender.displayName ?? ""} toName={c.recipient?.displayName ?? ""} toCity={c.recipientCity ?? ""} postmarkCity={c.senderCity} postmarkDate={c.sentAt} /> : null} />
+            back={canSeeBody ? <PostcardBack design={d} stamp={s} body={c.body} signature={c.sender.displayName ?? ""} toName={c.recipient?.displayName ?? ""} toCity={c.recipientCity ?? ""} postmarkCity={c.senderCity} postmarkDate={c.sentAt} fromCity={c.senderCity} km={c.distanceKm} /> : null} />
         ) : (
           <FlipCard orient={d.orient} startFlipped
             front={<PostcardFront design={d} fromCity={c.senderCity} toCity={c.recipientCity} km={c.distanceKm} />}
-            back={<PostcardBack design={d} stamp={s} body={c.body} signature={c.sender.displayName ?? ""} toName={c.recipient?.displayName ?? ""} toCity={c.recipientCity ?? ""} postmarkCity={c.senderCity} postmarkDate={c.sentAt} />} />
+            back={<PostcardBack design={d} stamp={s} body={c.body} signature={c.sender.displayName ?? ""} toName={c.recipient?.displayName ?? ""} toCity={c.recipientCity ?? ""} postmarkCity={c.senderCity} postmarkDate={c.sentAt} fromCity={c.senderCity} km={c.distanceKm} />} />
         )}
         <h2>Route</h2>
         <WorldMap cities={[c.senderCity, c.recipientCity ?? c.senderCity]} progress={arrived ? undefined : p} />
@@ -78,7 +78,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
       </div>
       <FlipCard orient={d.orient}
         front={<PostcardFront design={d} fromCity={c.senderCity} toCity={cities[cities.length - 1]} km={stats.totalKm} />}
-        back={<PostcardBack design={d} stamp={s} body={c.body} signature={c.sender.displayName ?? ""} toName="whoever holds this" toCity={c.recipientCity ?? "the world"} postmarkCity={c.senderCity} postmarkDate={c.hops[0]?.addedAt ?? c.sentAt} />} />
+        back={<PostcardBack design={d} stamp={s} body={c.body} signature={c.sender.displayName ?? ""} toName="whoever holds this" toCity={c.recipientCity ?? "the world"} postmarkCity={c.senderCity} postmarkDate={c.hops[0]?.addedAt ?? c.sentAt} fromCity={c.senderCity} km={stats.totalKm} />} />
       <div className="stats">
         <div className="stat"><b>{fmtNum(stats.totalKm)}</b><span>km travelled</span></div>
         <div className="stat"><b>{stats.uniqueCities}</b><span>unique cities</span></div>
