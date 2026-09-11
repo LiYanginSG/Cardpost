@@ -42,8 +42,9 @@ img, svg { display: block; max-width: 100%; }
 /* ---------- shell ---------- */
 .stripe { height: 7px; background: var(--chevron); }
 .shell { display: grid; grid-template-columns: 1fr; min-height: 100dvh; }
+.shell > * { min-width: 0; }
 .rail { display: none; }
-.main { padding: 18px 16px calc(var(--tabbar) + 24px); max-width: 720px; width: 100%; margin: 0 auto; }
+.main { padding: 18px 16px calc(var(--tabbar) + 24px); max-width: 720px; width: 100%; min-width: 0; margin: 0 auto; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
 .brand { font-weight: 700; letter-spacing: -0.02em; font-size: 17px; display: flex; align-items: center; gap: 9px; }
 .brand .mark { width: 30px; height: 20px; border: 1px solid var(--ink); background: #fff; position: relative; overflow: hidden; }
@@ -129,7 +130,7 @@ h3 { font-size: 13px; font-weight: 700; line-height: 1.35; }
 /* ---------- lists ---------- */
 .list { display: flex; flex-direction: column; margin-top: 8px; }
 .group { font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.08em; text-transform: uppercase; margin: 18px 0 6px; }
-.row { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--rule); min-height: 62px; }
+.row { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--rule); min-height: 62px; }
 .row:hover { background: rgba(255,255,255,0.5); }
 .thumb { width: 56px; height: 40px; background: var(--paper-3); border: 1px solid var(--rule); display: flex; align-items: center; justify-content: center; overflow: hidden; flex: none; }
 .thumb svg, .thumb img { width: 100%; height: 100%; object-fit: contain; }
@@ -146,7 +147,7 @@ h3 { font-size: 13px; font-weight: 700; line-height: 1.35; }
 /* Everything on a card is sized relative to the card's own width (cqw), so a 700px card on a laptop
    reads like a real postcard instead of a phone-sized one blown up. */
 .card-wrap { perspective: 1400px; margin: 12px 0; }
-.card3d { position: relative; width: 100%; aspect-ratio: 3/2; transform-style: preserve-3d; transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); cursor: pointer; container-type: inline-size; }
+.card3d { position: relative; width: 100%; max-width: 100%; aspect-ratio: 3/2; transform-style: preserve-3d; transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); cursor: pointer; container-type: inline-size; }
 .card3d.port { aspect-ratio: 2/3; max-width: 68%; margin: 0 auto; }
 .card3d.flipped { transform: rotateY(180deg); }
 @media (hover: hover) {
@@ -218,13 +219,13 @@ h3 { font-size: 13px; font-weight: 700; line-height: 1.35; }
 .track .ft { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--ink-2); }
 
 /* ---------- pickers ---------- */
-.scroller { display: flex; gap: 10px; overflow-x: auto; padding: 6px 2px 10px; scrollbar-width: thin; }
+.scroller { display: flex; gap: 10px; overflow-x: auto; padding: 6px 2px 10px; scrollbar-width: thin; min-width: 0; max-width: 100%; }
 .pick { flex: none; width: 96px; border: 1px solid var(--rule); background: #fff; padding: 6px; text-align: left; border-radius: var(--radius); }
 .pick.on { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
 .pick .box { height: 60px; background: var(--paper-3); display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .pick .box svg, .pick .box img { max-height: 100%; max-width: 100%; width: auto; height: auto; object-fit: contain; }
 .pick .box.stamp svg { height: 52px; }
-.pick small { display: block; font-size: 10px; color: var(--ink-2); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pick small { display: block; max-width: 100%; font-size: 10px; color: var(--ink-2); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pick.more { display: flex; align-items: center; justify-content: center; text-align: center; font-size: 10.5px; color: var(--blue); border-style: dashed; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 10px; }
 .tile { border: 1px solid var(--rule); background: #fff; padding: 8px; border-radius: var(--radius); display: flex; flex-direction: column; gap: 6px; }
@@ -251,7 +252,7 @@ h3 { font-size: 13px; font-weight: 700; line-height: 1.35; }
 .stat { border: 1px solid var(--rule); background: #fff; padding: 10px; }
 .stat b { display: block; font-size: 20px; letter-spacing: -0.02em; }
 .stat span { font-size: 10.5px; color: var(--ink-2); }
-.kv { display: grid; grid-template-columns: 1fr auto; gap: 6px 14px; font-size: 12px; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+.kv { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 14px; font-size: 12px; padding: 9px 0; border-bottom: 1px solid var(--rule); }
 .kv span { color: var(--ink-2); }
 .kv .v { text-align: right; }
 .avatar { width: 44px; height: 44px; border: 1px solid var(--ink); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; background: #fff; font-size: 14px; flex: none; overflow: hidden; }

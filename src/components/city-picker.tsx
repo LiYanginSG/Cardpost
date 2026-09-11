@@ -1,8 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 
-type Row = { name: string; cc: string };
-const countryName = (cc: string) => { try { return new Intl.DisplayNames(["en"], { type: "region" }).of(cc) ?? cc; } catch { return cc; } };
+type Row = { name: string; country: string };
 
 /** Searchable city field. Submits the chosen city key in a hidden input named `name`. */
 export function CityPicker({ name = "city", defaultValue = "", id = "city", required = true }: { name?: string; defaultValue?: string; id?: string; required?: boolean }) {
@@ -35,7 +34,7 @@ export function CityPicker({ name = "city", defaultValue = "", id = "city", requ
         value={query}
         autoComplete="off"
         required={required}
-        placeholder="Start typing a city"
+        placeholder="City, or a country to browse"
         onChange={(e) => { setQuery(e.target.value); setValue(""); setOpen(true); }}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 120)}
@@ -53,7 +52,7 @@ export function CityPicker({ name = "city", defaultValue = "", id = "city", requ
         <ul className="picker-list" role="listbox">
           {rows.map((r, i) => (
             <li key={r.name} role="option" aria-selected={i === active} className={i === active ? "on" : ""} onMouseDown={() => choose(r)}>
-              <b>{r.name}</b> <span>{countryName(r.cc)}</span>
+              <b>{r.name}</b> <span>{r.country}</span>
             </li>
           ))}
         </ul>
