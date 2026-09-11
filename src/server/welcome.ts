@@ -9,9 +9,10 @@ const DEFAULT_MESSAGE =
 
 /**
  * Every new person gets a welcome postcard from the app's founder account (WELCOME_FROM_EMAIL).
- * It travels at the normal speed for the distance, so the first card they ever receive arrives the way all cards do.
+ * It arrives at once, so the first thing in a new mailbox is a sealed card to open.
+ * WELCOME_DELAY_DAYS sets a delay in days instead; "auto" makes it travel at normal speed for the distance.
  * The founder is also added to their address book, so they can write back.
- * WELCOME_DELAY_DAYS overrides the travel time (0 = arrives at once). Silently does nothing if the founder account isn't set up.
+ * Silently does nothing if the founder account isn't set up.
  */
 export async function sendWelcomeCard(recipientId: string, now: Date): Promise<void> {
   try {
@@ -22,10 +23,8 @@ export async function sendWelcomeCard(recipientId: string, now: Date): Promise<v
     if (already > 0) return;
 
     const km = haversineKm(sender.city, recipient.city);
-    const override = process.env.WELCOME_DELAY_DAYS;
-    const arrivesAt = override !== undefined && override !== "" && Number.isFinite(Number(override))
-      ? new Date(now.getTime() + Math.max(0, Number(override)) * 86_400_000)
-      : arrivalDate(now, km);
+    const delay = (process.env.WELCOME_DELAY_DAYS ?? "0").trim().toLowerCase();
+    const arrivesAt = delay === "auto" ? arrivalDate(now, km) : new Date(now.getTime() + Math.max(0, Number(delay) || 0) * 86_400_000);
     const body = (process.env.WELCOME_MESSAGE || DEFAULT_MESSAGE).slice(0, MAX_BODY);
 
     await db.$transaction([
@@ -55,4 +54,18 @@ export async function sendWelcomeCard(recipientId: string, now: Date): Promise<v
   } catch (e) {
     console.error("welcome card failed", e);
   }
+}
+
+/** Anyone who set up their account without receiving a welcome card (signed up before the founder existed, say) gets one now. */
+export async function backfillWelcomeCards(now: Date): Promise<number> {
+  const fromEmail = (process.env.WELCOME_FROM_EMAIL || DEFAULT_FROM).toLowerCase();
+  const sender = await db.user.findUnique({ where: { email: fromEmail } });
+  if (!sender?.city) return 0;
+  const missing = await db.user.findMany({
+    where: { id: { not: sender.id }, city: { not: null }, handle: { not: null }, isDemo: false, receivedCards: { none: { senderId: sender.id, type: "sealed" } } },
+    select: { id: true },
+    take: 200,
+  });
+  for (const u of missing) await sendWelcomeCard(u.id, now);
+  return missing.length;
 }
