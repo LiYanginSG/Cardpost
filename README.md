@@ -64,7 +64,7 @@ Every account has a link like `https://your-app/i/abc1234` under **Account → I
 
 ## People
 
-The admin page lists everyone with an account. **Delete** removes their sign-in from Supabase Auth and retires their profile here. Deleting a user directly in Supabase's Authentication page also works: the maintenance job notices within the hour and retires the profile.
+The admin page lists everyone with an account. **Delete** removes their sign-in from Supabase Auth, retires their profile here, and removes all of their cards and signatures. Deleting a user directly in Supabase's Authentication page also works: the maintenance job notices within the hour and retires the profile.
 
 ## Soft launch mode
 
@@ -95,7 +95,7 @@ Sign in with an email listed in `ADMIN_EMAILS`, open **Account → Manage catalo
 | Design and stamp are frozen on the card at send time | `Card.designId`, `Card.stampId` |
 | Reported wandering lines are stripped; the card keeps moving | `reportHop` |
 | A sender can recall a card until it lands; postage refunded. After that it belongs to the recipient | `recallCard` |
-| Deleting a person anonymises their profile ("Deleted account") so delivered cards keep rendering; undelivered ones are destroyed | `src/server/people.ts` |
+| Deleting a person removes every card they sent or were sent and their wandering signatures; the profile row is anonymised | `src/server/people.ts` |
 | Unactioned wandering cards return to the pool after 7 days | `src/server/cron.ts` |
 
 ## Layout

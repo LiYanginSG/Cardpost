@@ -6,9 +6,10 @@ const serviceKey = () => process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 const adminHeaders = () => ({ apikey: serviceKey(), authorization: `Bearer ${serviceKey()}` });
 
 /**
- * Removes a person from the app. Their profile is anonymised rather than dropped, so cards they already
- * delivered keep rendering ("Deleted account"). Undelivered sealed cards they sent are destroyed, friendships
- * removed, and they leave the wandering pool. Their Supabase Auth user is deleted too when the service key is set.
+ * Removes a person from the app. Their profile row is anonymised (purchases and stats keep a row to hang off),
+ * and everything they posted disappears: cards they sent or received, wandering cards they started, and their
+ * signatures on other people's wandering cards. Friendships go, they leave the wandering pool, and their
+ * Supabase Auth user is deleted when the service key is set.
  */
 export async function deletePerson(userId: string, now: Date): Promise<void> {
   const u = await db.user.findUnique({ where: { id: userId } });
@@ -24,8 +25,9 @@ async function anonymise(userId: string, now: Date) {
   await db.$transaction([
     db.session.deleteMany({ where: { userId } }),
     db.friendship.deleteMany({ where: { OR: [{ userId }, { friendId: userId }] } }),
-    // Nobody has seen these yet: unarrived sealed cards they sent, and sealed cards addressed to them.
-    db.card.deleteMany({ where: { type: "sealed", OR: [{ senderId: userId }, { recipientId: userId }], arrivesAt: { gt: now } } }),
+    // Their signatures on other people's wandering cards, then every card they sent or were sent.
+    db.wanderingHop.deleteMany({ where: { holderId: userId } }),
+    db.card.deleteMany({ where: { OR: [{ senderId: userId }, { recipientId: userId, type: "sealed" }] } }),
     db.user.update({
       where: { id: userId },
       data: {
@@ -41,10 +43,22 @@ async function anonymise(userId: string, now: Date) {
       },
     }),
   ]);
-  // Wandering cards in their hands go back to the pool.
+  // Wandering cards in their hands (started by someone else) go back to the pool.
   const held = await db.card.findMany({ where: { type: "wandering", recipientId: userId, status: { in: ["in_transit", "delivered"] } }, select: { id: true } });
   const { assignNextHolder } = await import("./cards");
   for (const c of held) await assignNextHolder(c.id, now);
+}
+
+/** Cards and signatures left behind by people deleted before this rule existed. Runs in maintenance. */
+export async function purgeCardsOfDeletedUsers(): Promise<number> {
+  const gone = await db.user.findMany({ where: { deletedAt: { not: null } }, select: { id: true } });
+  if (gone.length === 0) return 0;
+  const ids = gone.map((u) => u.id);
+  const [hops, cards] = await db.$transaction([
+    db.wanderingHop.deleteMany({ where: { holderId: { in: ids } } }),
+    db.card.deleteMany({ where: { OR: [{ senderId: { in: ids } }, { recipientId: { in: ids }, type: "sealed" }] } }),
+  ]);
+  return hops.count + cards.count;
 }
 
 /**

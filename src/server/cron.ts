@@ -4,7 +4,7 @@ import { assignNextHolder } from "./cards";
 import { sendEmail, appUrl } from "./email";
 import { settleWeeklyPostage } from "./postage";
 import { backfillWelcomeCards } from "./welcome";
-import { sweepDeletedAuthUsers } from "./people";
+import { sweepDeletedAuthUsers, purgeCardsOfDeletedUsers } from "./people";
 
 const DEMO_LINES = [
   "If you're reading this, the system works. Keep it moving.",
@@ -85,6 +85,7 @@ export async function runHourly(now: Date): Promise<CronReport> {
 
   // 7. People deleted directly in Supabase Authentication: retire their profile here too.
   report.removed = await sweepDeletedAuthUsers(now);
+  await purgeCardsOfDeletedUsers();
 
   return report;
 }

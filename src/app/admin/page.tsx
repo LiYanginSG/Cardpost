@@ -24,7 +24,7 @@ export default async function AdminPage() {
       {!storageConfigured() && <div className="warn">Supabase Storage isn't configured (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY). Uploads will be stored inline in the database instead, which is fine for testing but not for production.</div>}
 
       <h2>People · {people.length}</h2>
-      <p className="small" style={{ color: "var(--ink-2)" }}>Everyone with an account. Deleting removes their sign-in from Supabase as well. Deleting in Supabase alone also works; the app catches up within the hour.</p>
+      <p className="small" style={{ color: "var(--ink-2)" }}>Everyone with an account. Deleting removes their sign-in from Supabase and all of their cards. Deleting in Supabase alone also works; the app catches up within the hour.</p>
       {people.map((p) => (
         <div key={p.id} className="person">
           <Avatar name={p.displayName ?? p.email} url={p.avatarUrl} />
