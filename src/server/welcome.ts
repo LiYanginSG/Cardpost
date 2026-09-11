@@ -5,7 +5,7 @@ import { MAX_BODY } from "@/lib/format";
 
 const DEFAULT_FROM = "liveyangliveval@gmail.com";
 const DEFAULT_MESSAGE =
-  "Welcome to Cardpost. This card left the day you joined and took the slow way, like everything here. Write one to someone you miss. I'll be reading. — Liyang";
+  "Welcome to Cardpost. Every card here takes the slow way. Write one to someone you miss, and write back to me anytime. I'll be reading.";
 
 /**
  * Every new person gets a welcome postcard from the app's founder account (WELCOME_FROM_EMAIL).

@@ -57,6 +57,10 @@ Leave `DEV_TIME_TRAVEL` unset in production.
 - **Stripe**: set `STRIPE_SECRET_KEY` and add a webhook for `checkout.session.completed` pointing at `/api/stripe/webhook`; put its signing secret in `STRIPE_WEBHOOK_SECRET`.
 - **Moderation**: set `OPENAI_API_KEY` to use the moderation endpoint instead of the built-in word list.
 
+## Invite links
+
+Every account has a link like `https://your-app/i/abc1234` under **Account → Invite friends**. Someone who joins through it is placed in the inviter's address book at once, and both receive `INVITE_BONUS` postage (default 5; the inviter is rewarded for at most `INVITE_REWARD_CAP` sign-ups). A signed-in person who opens someone's link is simply linked as a friend.
+
 ## People
 
 The admin page lists everyone with an account. **Delete** removes their sign-in from Supabase Auth and retires their profile here. Deleting a user directly in Supabase's Authentication page also works: the maintenance job notices within the hour and retires the profile.

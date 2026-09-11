@@ -21,7 +21,7 @@ export default async function WritePage({ searchParams }: { searchParams: Promis
       <h1>Write a card</h1>
       <p className="sub">240 characters. It leaves today and arrives when the distance says so.</p>
       {friends.length === 0 && (
-        <div className="warn">Your address book is empty, so sealed cards have nowhere to go. <Link className="link" href="/account#address-book">Add a friend by handle</Link>.</div>
+        <div className="warn">Your address book is empty, so sealed cards have nowhere to go. <Link className="link" href="/account#invite">Send someone your invite link</Link> or <Link className="link" href="/account#address-book">add a friend by handle</Link>.</div>
       )}
       <Composer
         user={{ id: user.id, displayName: user.displayName, city: user.city, postage: user.postage, ownedDesigns: user.ownedDesigns, ownedStamps: user.ownedStamps, activeDesign: user.activeDesign, activeStamp: user.activeStamp, openToWandering: user.openToWandering }}

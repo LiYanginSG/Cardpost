@@ -18,7 +18,8 @@ export default async function AdminPage() {
   const [cat, people] = await Promise.all([getCatalogue(), listPeople()]);
   return (
     <AppShell user={user} active="account">
-      <h1>Catalogue</h1>
+      <Link href="/settings" className="muted">← Settings</Link>
+      <h1 style={{ marginTop: 10 }}>Catalogue</h1>
       <p className="sub">Add postcards and stamps to the store. Artwork goes to Supabase Storage; the design is frozen onto every card that uses it, so retiring a design never breaks old mail.</p>
       {!storageConfigured() && <div className="warn">Supabase Storage isn't configured (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY). Uploads will be stored inline in the database instead, which is fine for testing but not for production.</div>}
 

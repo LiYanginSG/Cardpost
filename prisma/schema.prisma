@@ -44,6 +44,9 @@ model User {
   isDemo           Boolean  @default(false)
   deletedAt        DateTime?
   avatarUrl        String?
+  inviteCode       String?  @unique
+  invitedById      String?
+  invitesRewarded  Int      @default(0)
   createdAt        DateTime @default(now())
 
   sessions      Session[]

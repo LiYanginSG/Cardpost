@@ -11,6 +11,7 @@ import { acceptFriend, removeFriend, requestFriend } from "./friends";
 import { buyDesign, buyStamp, createCheckout, setActive, stripeConfigured } from "./store";
 import { sendWelcomeCard } from "./welcome";
 import { uploadArtwork } from "./storage";
+import { applyInvite, pendingInviteCode } from "./invites";
 
 export type FormState = { error?: string; ok?: string; devLink?: string } | null;
 
@@ -74,7 +75,12 @@ export async function onboardAction(_: FormState, fd: FormData): Promise<FormSta
   if (taken) return { error: `@${handle} is taken.` };
   const firstTime = !u.city;
   await db.user.update({ where: { id: u.id }, data: { handle, displayName, city } });
-  if (firstTime) await sendWelcomeCard(u.id, await now());
+  if (firstTime) {
+    const t = await now();
+    const code = await pendingInviteCode();
+    if (code) await applyInvite(u.id, code).catch((e) => console.error("invite", e));
+    await sendWelcomeCard(u.id, t);
+  }
   redirect("/mailbox");
 }
 

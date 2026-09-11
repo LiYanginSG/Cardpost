@@ -90,7 +90,7 @@ export function Composer({ user, friends, designs, stamps, initialTo, initialKin
         </div>
       ) : wanderingBlocked ? (
         <div className="warn">
-          To post to the wandering pool, open yourself to wandering mail first. <Link className="link" href="/account#preferences">Do that in Account</Link>.
+          To post to the wandering pool, open yourself to wandering mail first. <Link className="link" href="/settings#preferences">Do that in Account</Link>.
         </div>
       ) : (
         <p className="hint">A random stranger who has opted in. You can't choose who, and neither can anyone else. {wanderingLeft} of 3 wandering cards left today.</p>
