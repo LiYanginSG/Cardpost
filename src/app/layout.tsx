@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Courier_Prime, Caveat } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const mono = Courier_Prime({ weight: ["400", "700"], style: ["normal", "italic"], subsets: ["latin"], variable: "--font-mono", display: "swap" });
@@ -18,7 +19,10 @@ export const viewport: Viewport = { themeColor: "#1B2A4A", width: "device-width"
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${mono.variable} ${hand.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <SpeedInsights />
+      </body>
     </html>
   );
 }
