@@ -123,7 +123,8 @@ export async function finishSupabaseLogin(params: URLSearchParams): Promise<Call
   if (code) {
     const { data, error } = await sb.auth.exchangeCodeForSession(code);
     if (error) return { ok: false };
-    return { ok: true, recovery: data.redirectType === "recovery" || type === "recovery" };
+    const redirectType = (data as { redirectType?: string | null }).redirectType;
+    return { ok: true, recovery: redirectType === "recovery" || type === "recovery" };
   }
   if (tokenHash && type) {
     const { error } = await sb.auth.verifyOtp({ token_hash: tokenHash, type: type as "email" | "magiclink" | "recovery" | "signup" });
