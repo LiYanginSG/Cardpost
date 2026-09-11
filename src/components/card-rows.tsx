@@ -4,6 +4,8 @@ import { routeCities } from "@/server/cards";
 import { DesignThumb } from "./postcard";
 import { Sheet } from "./map-sheet";
 import { WorldMap } from "./world-map";
+import { RecallButton } from "./recall-button";
+import { postageCost } from "@/lib/geo";
 import { fmtDate, fmtMonth, daysLeft } from "@/lib/format";
 import { fmtKm } from "@/lib/geo";
 import type { Catalogue } from "@/server/catalogue";
@@ -74,6 +76,8 @@ export function TrackRow({ card, now }: { card: CardFull; now: Date; cat?: Catal
           <p className="muted" style={{ marginTop: 8 }}>Sent {fmtDate(card.sentAt)}{card.arrivesAt ? ` · arrives ${fmtDate(card.arrivesAt)}` : ""}</p>
         </Sheet>
         <Link href={`/card/${card.id}`} className="btn btn-sm btn-ghost">Open</Link>
+        {!arrived && card.type === "sealed" && <RecallButton cardId={card.id} refund={postageCost(card.distanceKm)} />}
+        {card.type === "wandering" && card.hops.length <= 1 && (card.status === "pooled" || !arrived) && <RecallButton cardId={card.id} refund={postageCost(card.distanceKm) || 1} />}
       </div>
     </div>
   );

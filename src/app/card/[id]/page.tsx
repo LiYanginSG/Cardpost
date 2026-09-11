@@ -10,10 +10,11 @@ import { FlipCard } from "@/components/flip-card";
 import { WorldMap } from "@/components/world-map";
 import { WanderingActions } from "@/components/wandering-actions";
 import { ReportButton } from "@/components/report-button";
+import { RecallButton } from "@/components/recall-button";
 import { progressOf } from "@/components/card-rows";
 import { getCatalogue } from "@/server/catalogue";
 import { fmtDate, fmtNum } from "@/lib/format";
-import { fmtKm, routeStats } from "@/lib/geo";
+import { fmtKm, postageCost, routeStats } from "@/lib/geo";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +59,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
         {c.senderId === user.id && <div className="kv"><span>Opened</span><div className="v">{c.openedAt ? fmtDate(c.openedAt) : "not yet"}</div></div>}
         <div className="kv"><span>Postcard · stamp</span><div className="v">{d.name} · {s.name}</div></div>
         {isRecipient && opened && <div className="row-actions"><Link href={`/write?to=${c.sender.id}`} className="btn">Write back</Link></div>}
+        {c.senderId === user.id && !arrived && <div className="row-actions"><RecallButton cardId={c.id} refund={postageCost(c.distanceKm)} /><span className="hint" style={{ margin: 0 }}>You can recall a card until it lands.</span></div>}
       </AppShell>
     );
   }

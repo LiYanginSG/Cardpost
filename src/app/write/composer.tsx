@@ -111,7 +111,7 @@ export function Composer({ user, friends, designs, stamps, initialTo, initialKin
       <button className="btn btn-primary btn-block" disabled={pending || !canSend} style={{ marginTop: 16 }}>
         {pending ? "Posting…" : kind === "sealed" ? `Post it${cost ? ` · ${cost} postage` : ""}` : "Send it wandering"}
       </button>
-      <p className="hint">Once it's posted there is no deliver-now and no recall. That's the point.</p>
+      <p className="hint">There is no deliver-now. You can recall a card from your outbox until the day it lands.</p>
     </form>
   );
 }

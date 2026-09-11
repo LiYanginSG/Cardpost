@@ -77,6 +77,24 @@ export async function sendSealed(
   return { ok: true, value: card };
 }
 
+/**
+ * Sender recalls a card that hasn't arrived yet. The card is destroyed and the postage refunded.
+ * Sealed cards only, plus wandering cards nobody else has signed. Once it lands, it belongs to the recipient.
+ */
+export async function recallCard(cardId: string, userId: string, now: Date): Promise<Result> {
+  const card = await db.card.findFirst({ where: { id: cardId, senderId: userId }, include: { hops: true } });
+  if (!card) return fail("Not found.");
+  const arrived = card.arrivesAt !== null && card.arrivesAt <= now;
+  if (card.type === "sealed" && arrived) return fail("Too late. It has already landed.");
+  if (card.type === "wandering" && (card.hops.length > 1 || (arrived && card.status !== "pooled"))) return fail("Too late. A stranger already has it.");
+  const refund = card.type === "sealed" ? postageCost(card.distanceKm) : postageCost(card.distanceKm) || 1;
+  await db.$transaction([
+    db.card.delete({ where: { id: cardId } }),
+    db.user.update({ where: { id: userId }, data: { postage: { increment: refund } } }),
+  ]);
+  return { ok: true, value: undefined };
+}
+
 /** Recipient breaks the seal. Only possible once the card has arrived. */
 export async function openCard(cardId: string, userId: string, now: Date): Promise<Result> {
   const r = await db.card.updateMany({
@@ -96,6 +114,7 @@ async function pickHolder(excludeIds: string[], fromCity: string): Promise<User 
     phoneVerified: true,
     city: { not: null },
     handle: { not: null },
+    deletedAt: null,
   };
   let pool = await db.user.findMany({ where: { ...base, city: { not: fromCity } }, take: 200 });
   if (pool.length === 0) pool = await db.user.findMany({ where: base, take: 200 });

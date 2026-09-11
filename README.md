@@ -58,6 +58,10 @@ Leave `DEV_TIME_TRAVEL` unset in production.
 - **Moderation**: set `OPENAI_API_KEY` to use the moderation endpoint instead of the built-in word list.
 - **Phone verification**: set the three `TWILIO_*` vars. Without them, verification is a dev toggle (any code passes).
 
+## People
+
+The admin page lists everyone with an account. **Delete** removes their sign-in from Supabase Auth and retires their profile here. Deleting a user directly in Supabase's Authentication page also works: the maintenance job notices within the hour and retires the profile.
+
 ## Adding postcards and stamps
 
 Sign in with an email listed in `ADMIN_EMAILS`, open **Account → Manage catalogue** (`/admin`), and upload the artwork file with a name, artist, cost and orientation. It appears in the store immediately. From the same page you can feature, retire, reprice, or gift a design to every existing account.
@@ -79,6 +83,8 @@ Sign in with an email listed in `ADMIN_EMAILS`, open **Account → Manage catalo
 | 12 free postage every Sunday, capped at 40, whether or not you open the app | `src/server/postage.ts` |
 | Design and stamp are frozen on the card at send time | `Card.designId`, `Card.stampId` |
 | Reported wandering lines are stripped; the card keeps moving | `reportHop` |
+| A sender can recall a card until it lands; postage refunded. After that it belongs to the recipient | `recallCard` |
+| Deleting a person anonymises their profile ("Deleted account") so delivered cards keep rendering; undelivered ones are destroyed | `src/server/people.ts` |
 | Unactioned wandering cards return to the pool after 7 days | `src/server/cron.ts` |
 
 ## Layout

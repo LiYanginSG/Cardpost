@@ -62,7 +62,7 @@ export async function backfillWelcomeCards(now: Date): Promise<number> {
   const sender = await db.user.findUnique({ where: { email: fromEmail } });
   if (!sender?.city) return 0;
   const missing = await db.user.findMany({
-    where: { id: { not: sender.id }, city: { not: null }, handle: { not: null }, isDemo: false, receivedCards: { none: { senderId: sender.id, type: "sealed" } } },
+    where: { id: { not: sender.id }, city: { not: null }, handle: { not: null }, isDemo: false, deletedAt: null, receivedCards: { none: { senderId: sender.id, type: "sealed" } } },
     select: { id: true },
     take: 200,
   });

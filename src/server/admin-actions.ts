@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { slugify } from "@/lib/catalogue";
 import { requireAdmin } from "./admin";
 import { uploadArtwork } from "./storage";
+import { deletePerson } from "./people";
+import { now } from "@/lib/clock";
 import type { FormState } from "./actions";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -88,4 +90,17 @@ export async function grantToEveryoneAction(kind: "design" | "stamp", id: string
   if (kind === "design") await db.$executeRaw`UPDATE "User" SET "ownedDesigns" = array_append("ownedDesigns", ${id}) WHERE NOT (${id} = ANY("ownedDesigns"))`;
   else await db.$executeRaw`UPDATE "User" SET "ownedStamps" = array_append("ownedStamps", ${id}) WHERE NOT (${id} = ANY("ownedStamps"))`;
   revalidateAll();
+}
+
+/** Removes a person from the app and from Supabase Auth. */
+export async function deletePersonAction(userId: string): Promise<FormState> {
+  const admin = await requireAdmin();
+  if (admin.id === userId) return { error: "You can't delete your own account from here." };
+  try {
+    await deletePerson(userId, await now());
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+  revalidatePath("/admin");
+  return { ok: "Removed." };
 }

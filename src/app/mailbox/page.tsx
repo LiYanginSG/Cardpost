@@ -15,7 +15,7 @@ import { fmtKm } from "@/lib/geo";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Mailbox" };
 
-type SP = { kind?: string; box?: string; view?: string; sent?: string };
+type SP = { kind?: string; box?: string; view?: string; sent?: string; recalled?: string };
 
 export default async function Mailbox({ searchParams }: { searchParams: Promise<SP> }) {
   const user = await requireUser();
@@ -50,6 +50,7 @@ export default async function Mailbox({ searchParams }: { searchParams: Promise<
           </>
         )}
       </div>
+      {sp.recalled && <div className="ok">Recalled. The card is gone and your postage is back.</div>}
       {sp.sent && <div className="ok">Posted. It's on its way; you'll see it move below. The recipient sees nothing until it lands.</div>}
 
       {cards.length === 0 && <Empty kind={kind} box={box} />}

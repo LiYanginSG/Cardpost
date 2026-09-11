@@ -4,6 +4,7 @@ import { assignNextHolder } from "./cards";
 import { sendEmail, appUrl } from "./email";
 import { settleWeeklyPostage } from "./postage";
 import { backfillWelcomeCards } from "./welcome";
+import { sweepDeletedAuthUsers } from "./people";
 
 const DEMO_LINES = [
   "If you're reading this, the system works. Keep it moving.",
@@ -14,11 +15,11 @@ const DEMO_LINES = [
   "Someone I loved used to send real postcards. This is the closest thing.",
 ];
 
-export type CronReport = { delivered: number; notified: number; pooled: number; returned: number; botHops: number; postageSettled: number; welcomed: number };
+export type CronReport = { delivered: number; notified: number; pooled: number; returned: number; botHops: number; postageSettled: number; welcomed: number; removed: number };
 
 /** Hourly: flip arrived cards to delivered, notify, move stale wandering cards, grant weekly postage. */
 export async function runHourly(now: Date): Promise<CronReport> {
-  const report: CronReport = { delivered: 0, notified: 0, pooled: 0, returned: 0, botHops: 0, postageSettled: 0, welcomed: 0 };
+  const report: CronReport = { delivered: 0, notified: 0, pooled: 0, returned: 0, botHops: 0, postageSettled: 0, welcomed: 0, removed: 0 };
 
   // 1. Deliveries. Recipient queries already hide unarrived cards; this flips the status and sends the one push this app sends.
   const arrived = await db.card.findMany({ where: { status: "in_transit", arrivesAt: { lte: now } }, include: { recipient: true, sender: true } });
@@ -81,6 +82,9 @@ export async function runHourly(now: Date): Promise<CronReport> {
 
   // 6. Welcome cards for anyone who set up before the founder account existed.
   report.welcomed = await backfillWelcomeCards(now);
+
+  // 7. People deleted directly in Supabase Authentication: retire their profile here too.
+  report.removed = await sweepDeletedAuthUsers(now);
 
   return report;
 }

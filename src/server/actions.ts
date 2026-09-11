@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { now } from "@/lib/clock";
 import { isCity } from "@/lib/cities";
 import { clearSession, getUser, requireUser, startLogin, signInWithPassword, signUpWithPassword, sendPasswordReset, updatePassword, startGoogleSignIn } from "./auth";
-import { openCard, passOn, reportHop, returnToPool, sendSealed, sendWandering } from "./cards";
+import { openCard, passOn, recallCard, reportHop, returnToPool, sendSealed, sendWandering } from "./cards";
 import { acceptFriend, removeFriend, requestFriend } from "./friends";
 import { buyDesign, buyStamp, createCheckout, setActive, stripeConfigured } from "./store";
 import { checkPhoneVerification, startPhoneVerification } from "./phone";
@@ -136,6 +136,14 @@ export async function openCardAction(cardId: string): Promise<FormState> {
   revalidatePath(`/card/${cardId}`);
   revalidatePath("/mailbox");
   return r.ok ? { ok: "opened" } : { error: r.error };
+}
+
+export async function recallCardAction(cardId: string): Promise<FormState> {
+  const u = await requireUser();
+  const r = await recallCard(cardId, u.id, await now());
+  if (!r.ok) return { error: r.error };
+  revalidatePath("/mailbox");
+  redirect("/mailbox?kind=sealed&box=out&recalled=1");
 }
 
 export async function passOnAction(_: FormState, fd: FormData): Promise<FormState> {
