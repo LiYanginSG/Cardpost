@@ -99,7 +99,8 @@ export async function updatePassword(password: string): Promise<AuthOutcome> {
   return error ? { ok: false, error: friendly(error.message) } : { ok: true, message: "Password updated." };
 }
 
-export const googleSignInEnabled = () => process.env.GOOGLE_SIGNIN === "1";
+/** The Google button always shows; set GOOGLE_SIGNIN=0 to hide it. Clicking it with the provider off gives a clear message. */
+export const googleSignInEnabled = () => process.env.GOOGLE_SIGNIN !== "0";
 
 /** Starts Google sign-in through Supabase. Returns the Google URL to send the browser to. */
 export async function startGoogleSignIn(): Promise<{ url: string } | { error: string }> {
