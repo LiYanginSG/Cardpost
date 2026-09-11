@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { now } from "@/lib/clock";
 import { listFriends, pendingRequests } from "@/server/friends";
 import { phoneConfigured } from "@/server/phone";
+import { supabaseAuthConfigured } from "@/server/supabase";
 import { nextPostageDate } from "@/server/postage";
 import { getCatalogue } from "@/server/catalogue";
 import { isAdmin } from "@/server/admin";
@@ -46,6 +47,7 @@ export default async function AccountPage() {
 
       <h2>Account</h2>
       <div className="kv"><span>Email</span><div className="v">{user.email}</div></div>
+      {supabaseAuthConfigured() && <div className="kv"><span>Password</span><div className="v"><Link className="link" href="/account/password">Change password</Link></div></div>}
       <div className="kv"><span>Postage</span><div className="v">{user.postage} · next 12 on {fmtDate(nextPostageDate(user))}</div></div>
       <PhoneVerify verified={user.phoneVerified} devMode={!phoneConfigured()} />
       <div style={{ marginTop: 6 }}><ProfileForm displayName={user.displayName} city={user.city} /></div>

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { now } from "@/lib/clock";
 import { isCity } from "@/lib/cities";
-import { clearSession, getUser, requireUser, startLogin } from "./auth";
+import { clearSession, getUser, requireUser, startLogin, signInWithPassword, signUpWithPassword, sendPasswordReset, updatePassword, startGoogleSignIn } from "./auth";
 import { openCard, passOn, reportHop, returnToPool, sendSealed, sendWandering } from "./cards";
 import { acceptFriend, removeFriend, requestFriend } from "./friends";
 import { buyDesign, buyStamp, createCheckout, setActive, stripeConfigured } from "./store";
@@ -21,6 +21,38 @@ export async function loginAction(_: FormState, fd: FormData): Promise<FormState
   const r = await startLogin(str(fd, "email"));
   if (!r.ok) return { error: r.error };
   return { ok: "sent", devLink: r.devLink };
+}
+
+export async function passwordSignInAction(_: FormState, fd: FormData): Promise<FormState> {
+  const r = await signInWithPassword(str(fd, "email"), String(fd.get("password") ?? ""));
+  if (!r.ok) return { error: r.error };
+  redirect("/");
+}
+
+export async function passwordSignUpAction(_: FormState, fd: FormData): Promise<FormState> {
+  const r = await signUpWithPassword(str(fd, "email"), String(fd.get("password") ?? ""));
+  if (!r.ok) return { error: r.error };
+  if (r.signedIn) redirect("/onboarding");
+  return { ok: r.message };
+}
+
+export async function forgotPasswordAction(_: FormState, fd: FormData): Promise<FormState> {
+  const r = await sendPasswordReset(str(fd, "email"));
+  return r.ok ? { ok: r.message } : { error: r.error };
+}
+
+export async function setPasswordAction(_: FormState, fd: FormData): Promise<FormState> {
+  await getUser().then((u) => { if (!u) redirect("/login"); });
+  const pw = String(fd.get("password") ?? "");
+  if (pw !== String(fd.get("confirm") ?? "")) return { error: "The two passwords don't match." };
+  const r = await updatePassword(pw);
+  return r.ok ? { ok: r.message } : { error: r.error };
+}
+
+export async function googleSignInAction(): Promise<FormState> {
+  const r = await startGoogleSignIn();
+  if ("error" in r) return { error: r.error };
+  redirect(r.url);
 }
 
 export async function signOutAction() {

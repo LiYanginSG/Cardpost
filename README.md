@@ -11,7 +11,7 @@ The delay is the product. There is no deliver-now.
 - Next.js 15 (App Router) + TypeScript
 - Supabase Postgres via Prisma 6 (any Postgres works)
 - Supabase Storage for uploaded postcard and stamp artwork; the catalogue lives in the database and is managed at `/admin`
-- Sign-in with Supabase Auth (email magic link); users appear under Authentication in Supabase and as profile rows in the User table
+- Sign-in with Supabase Auth: email + password, email magic link, and Google (optional). Users appear under Authentication in Supabase and as profile rows in the User table
 - A maintenance job flips arrived cards to delivered and sends the one email this app sends. It runs from a daily Vercel cron (the Hobby plan limit) and opportunistically after page loads, at most every 15 minutes
 - Stripe Checkout for postage books, OpenAI moderation for wandering text, Twilio Verify for phone verification — all optional, all gated on env vars
 - Installable PWA. The API surface lives in `src/server/*` behind thin server actions, so a React Native / Expo app can share it later.
@@ -41,7 +41,8 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/deli
 2. Connect Supabase to the Vercel project through the **Supabase integration** (Vercel → Integrations, or Supabase → Project settings → Integrations). It injects `POSTGRES_PRISMA_URL`, `POSTGRES_URL_NON_POOLING`, `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, and the app reads those directly. Nothing to copy.
    Without the integration, set `DATABASE_URL` (transaction pooler, port 6543, with `?pgbouncer=true&connection_limit=1`) and `DIRECT_URL` (session pooler or direct, port 5432) from **Project settings → Database**, and `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` from **Project settings → API**.
 3. In Supabase, open **Authentication → URL Configuration**. Set **Site URL** to your Vercel URL and add `https://your-app.vercel.app/auth/callback` under **Redirect URLs**. Sign-in links bounce without this.
-   Supabase's built-in mailer is enough to test with (a few emails an hour). Before inviting people, add a real sender under **Authentication → SMTP Settings** (Resend works: host `smtp.resend.com`, port 465, user `resend`, password your API key).
+   Password sign-in needs no email at all. To let people create accounts without a confirmation email while you're testing, turn off **Confirm email** under **Authentication → Providers → Email**; turn it back on once you've added a real sender under **Authentication → SMTP Settings** (Resend works: host `smtp.resend.com`, port 465, user `resend`, password your API key). Supabase's built-in mailer allows only a few emails an hour.
+   For Google sign-in: create an OAuth client in Google Cloud Console (Web application, authorised redirect URI `https://PROJECT.supabase.co/auth/v1/callback`), paste its client ID and secret into **Authentication → Providers → Google** in Supabase, then set `GOOGLE_SIGNIN=1` in Vercel.
 4. The `artwork` Storage bucket is created automatically, public, on the first upload.
 5. Set `ADMIN_EMAILS` to your sign-in email so you can reach `/admin`.
 6. Set `CRON_SECRET` to any long random string. Optionally set `RESEND_API_KEY` + `EMAIL_FROM` so arrival notifications go out; sign-in works without them.

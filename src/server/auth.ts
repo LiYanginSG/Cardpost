@@ -45,6 +45,68 @@ async function startSupabaseLogin(email: string): Promise<LoginResult> {
   return { ok: true };
 }
 
+/* ---------- password and Google (Supabase Auth) ---------- */
+
+type AuthOutcome = { ok: true; message?: string } | { ok: false; error: string };
+
+const friendly = (msg: string) => {
+  if (/invalid login credentials/i.test(msg)) return "Wrong email or password.";
+  if (/rate limit/i.test(msg)) return "Too many attempts in a short time. Wait a few minutes and try again.";
+  if (/already registered|already exists/i.test(msg)) return "There's already an account with that email. Sign in instead, or reset the password.";
+  if (/password should be|weak password|at least/i.test(msg)) return "Use a longer password, at least 8 characters.";
+  if (/email not confirmed/i.test(msg)) return "Confirm your email first. Check your inbox for the confirmation message.";
+  if (/unsupported provider|provider is not enabled/i.test(msg)) return "That sign-in method isn't switched on in Supabase yet.";
+  return msg;
+};
+
+export async function signInWithPassword(rawEmail: string, password: string): Promise<AuthOutcome> {
+  const email = rawEmail.trim().toLowerCase();
+  if (!validEmail(email)) return { ok: false, error: "That doesn't look like an email address." };
+  if (!password) return { ok: false, error: "Enter your password." };
+  const sb = await createServerSupabase();
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  return error ? { ok: false, error: friendly(error.message) } : { ok: true };
+}
+
+/** Creates an account. If Supabase requires email confirmation, the person gets a message instead of a session. */
+export async function signUpWithPassword(rawEmail: string, password: string): Promise<AuthOutcome & { signedIn?: boolean }> {
+  const email = rawEmail.trim().toLowerCase();
+  if (!validEmail(email)) return { ok: false, error: "That doesn't look like an email address." };
+  if (password.length < 8) return { ok: false, error: "Use a password of at least 8 characters." };
+  const sb = await createServerSupabase();
+  const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: `${appUrl()}/auth/callback` } });
+  if (error) return { ok: false, error: friendly(error.message) };
+  if (data.session) return { ok: true, signedIn: true };
+  // Supabase returns a user with no identities when the email already exists and confirmation is on.
+  if (data.user && data.user.identities && data.user.identities.length === 0) return { ok: false, error: friendly("already registered") };
+  return { ok: true, signedIn: false, message: "Account created. Check your inbox and click the confirmation link, then sign in." };
+}
+
+export async function sendPasswordReset(rawEmail: string): Promise<AuthOutcome> {
+  const email = rawEmail.trim().toLowerCase();
+  if (!validEmail(email)) return { ok: false, error: "That doesn't look like an email address." };
+  const sb = await createServerSupabase();
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: `${appUrl()}/auth/callback?next=/account/password` });
+  return error ? { ok: false, error: friendly(error.message) } : { ok: true, message: "If that email has an account, a reset link is on its way." };
+}
+
+export async function updatePassword(password: string): Promise<AuthOutcome> {
+  if (password.length < 8) return { ok: false, error: "Use a password of at least 8 characters." };
+  const sb = await createServerSupabase();
+  const { error } = await sb.auth.updateUser({ password });
+  return error ? { ok: false, error: friendly(error.message) } : { ok: true, message: "Password updated." };
+}
+
+export const googleSignInEnabled = () => process.env.GOOGLE_SIGNIN === "1";
+
+/** Starts Google sign-in through Supabase. Returns the Google URL to send the browser to. */
+export async function startGoogleSignIn(): Promise<{ url: string } | { error: string }> {
+  const sb = await createServerSupabase();
+  const { data, error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${appUrl()}/auth/callback` } });
+  if (error || !data.url) return { error: friendly(error?.message ?? "Couldn't start Google sign-in.") };
+  return { url: data.url };
+}
+
 /** Handles the link Supabase sends the person back on. Supports both the PKCE `code` and the `token_hash` template. */
 export async function finishSupabaseLogin(params: URLSearchParams): Promise<boolean> {
   const sb = await createServerSupabase();
@@ -56,7 +118,7 @@ export async function finishSupabaseLogin(params: URLSearchParams): Promise<bool
     return !error;
   }
   if (tokenHash && type) {
-    const { error } = await sb.auth.verifyOtp({ token_hash: tokenHash, type: type as "email" | "magiclink" });
+    const { error } = await sb.auth.verifyOtp({ token_hash: tokenHash, type: type as "email" | "magiclink" | "recovery" | "signup" });
     return !error;
   }
   return false;

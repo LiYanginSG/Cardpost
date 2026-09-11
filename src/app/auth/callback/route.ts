@@ -11,7 +11,9 @@ export async function GET(req: Request) {
 
   if (supabaseAuthConfigured()) {
     const ok = await finishSupabaseLogin(url.searchParams);
-    return to(ok ? "/onboarding" : "/login?error=expired");
+    const next = url.searchParams.get("next") ?? "";
+    const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/onboarding";
+    return to(ok ? safeNext : "/login?error=expired");
   }
   const token = url.searchParams.get("token") ?? "";
   const sid = token ? await consumeLoginToken(token) : null;
