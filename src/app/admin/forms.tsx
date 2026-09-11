@@ -1,6 +1,6 @@
 "use client";
 import { useActionState, useState, useTransition } from "react";
-import { createDesignAction, createStampAction, grantToEveryoneAction, updateItemAction } from "@/server/admin-actions";
+import { createDesignAction, createStampAction, deleteItemAction, grantToEveryoneAction, updateItemAction } from "@/server/admin-actions";
 import type { FormState } from "@/server/actions";
 
 export function NewDesignForm() {
@@ -44,9 +44,10 @@ export function NewStampForm() {
   );
 }
 
-export function ItemControls({ kind, id, active, featured, cost }: { kind: "design" | "stamp"; id: string; active: boolean; featured: boolean; cost: number }) {
+export function ItemControls({ kind, id, active, featured, cost, name }: { kind: "design" | "stamp"; id: string; active: boolean; featured: boolean; cost: number; name: string }) {
   const [pending, start] = useTransition();
   const [c, setC] = useState(cost);
+  const [msg, setMsg] = useState<string | null>(null);
   return (
     <div className="row-actions" style={{ marginTop: 6 }}>
       <button type="button" className="btn btn-sm btn-ghost" disabled={pending} onClick={() => start(() => updateItemAction(kind, id, { active: !active }))}>{active ? "Retire" : "Put back on sale"}</button>
@@ -56,6 +57,8 @@ export function ItemControls({ kind, id, active, featured, cost }: { kind: "desi
         <button type="button" className="btn btn-sm btn-ghost" disabled={pending || c === cost} onClick={() => start(() => updateItemAction(kind, id, { cost: c }))}>Set cost</button>
       </span>
       <button type="button" className="btn btn-sm btn-ghost" disabled={pending} onClick={() => { if (confirm("Give this to every existing account for free?")) start(() => grantToEveryoneAction(kind, id)); }}>Gift to everyone</button>
+      <button type="button" className="btn btn-sm btn-ghost" style={{ color: "var(--red)" }} disabled={pending} onClick={() => { if (confirm(`Delete "${name}" for good? Only possible if no card has used it. Owners are refunded.`)) start(async () => { const r = await deleteItemAction(kind, id); setMsg(r?.error ?? r?.ok ?? null); }); }}>Delete</button>
+      {msg && <span className={msg.startsWith("Deleted") ? "muted" : "warn"} style={{ margin: 0 }}>{msg}</span>}
     </div>
   );
 }

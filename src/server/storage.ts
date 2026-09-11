@@ -36,3 +36,12 @@ export async function uploadArtwork(path: string, bytes: ArrayBuffer, contentTyp
   if (!r.ok) throw new Error(`Upload failed: ${await r.text()}`);
   return `${url()}/storage/v1/object/public/${bucket()}/${path}`;
 }
+
+/** Best-effort removal of an uploaded file, given its public URL. Ignores anything that isn't in our bucket. */
+export async function deleteArtwork(publicUrl: string | null | undefined): Promise<void> {
+  if (!publicUrl || !storageConfigured()) return;
+  const prefix = `${url()}/storage/v1/object/public/${bucket()}/`;
+  if (!publicUrl.startsWith(prefix)) return;
+  const path = publicUrl.slice(prefix.length);
+  await fetch(`${url()}/storage/v1/object/${bucket()}/${path}`, { method: "DELETE", headers: headers() }).catch(() => undefined);
+}

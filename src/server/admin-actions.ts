@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { slugify } from "@/lib/catalogue";
 import { requireAdmin } from "./admin";
-import { uploadArtwork } from "./storage";
+import { uploadArtwork, deleteArtwork } from "./storage";
 import { deletePerson } from "./people";
 import { now } from "@/lib/clock";
 import type { FormState } from "./actions";
@@ -103,4 +103,35 @@ export async function deletePersonAction(userId: string): Promise<FormState> {
   }
   revalidatePath("/admin");
   return { ok: "Removed." };
+}
+
+/**
+ * Permanently removes a postcard or stamp. Only allowed when no card has ever used it; otherwise retire it.
+ * Anyone who bought it gets the postage back and it leaves their collection.
+ */
+export async function deleteItemAction(kind: "design" | "stamp", id: string): Promise<FormState> {
+  await requireAdmin();
+  const used = await db.card.count({ where: kind === "design" ? { designId: id } : { stampId: id } });
+  if (used > 0) return { error: `${used} card${used === 1 ? " uses" : "s use"} this. Retire it instead, so those cards keep their artwork.` };
+  const item = kind === "design" ? await db.design.findUnique({ where: { id } }) : await db.stamp.findUnique({ where: { id } });
+  if (!item) return { error: "Not found." };
+  const owners = await db.user.findMany({
+    where: kind === "design" ? { ownedDesigns: { has: id } } : { ownedStamps: { has: id } },
+    select: { id: true, ownedDesigns: true, ownedStamps: true, activeDesign: true, activeStamp: true },
+  });
+  await db.$transaction([
+    ...owners.map((o) =>
+      db.user.update({
+        where: { id: o.id },
+        data:
+          kind === "design"
+            ? { ownedDesigns: o.ownedDesigns.filter((x) => x !== id), postage: { increment: item.cost }, ...(o.activeDesign === id ? { activeDesign: "classic" } : {}) }
+            : { ownedStamps: o.ownedStamps.filter((x) => x !== id), postage: { increment: item.cost }, ...(o.activeStamp === id ? { activeStamp: "house" } : {}) },
+      }),
+    ),
+    kind === "design" ? db.design.delete({ where: { id } }) : db.stamp.delete({ where: { id } }),
+  ]);
+  await deleteArtwork(item.artUrl);
+  revalidateAll();
+  return { ok: `Deleted. ${owners.length ? `${owners.length} owner${owners.length === 1 ? "" : "s"} refunded ${item.cost} postage.` : ""}` };
 }

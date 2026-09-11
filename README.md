@@ -69,7 +69,7 @@ The admin page lists everyone with an account. **Delete** removes their sign-in 
 
 Profile pictures are uploaded from Account, squared and shrunk to 256px in the browser, and stored in the same Supabase bucket under `avatars/`.
 
-Sign in with an email listed in `ADMIN_EMAILS`, open **Account → Manage catalogue** (`/admin`), and upload the artwork file with a name, artist, cost and orientation. It appears in the store immediately. From the same page you can feature, retire, reprice, or gift a design to every existing account.
+Sign in with an email listed in `ADMIN_EMAILS`, open **Account → Manage catalogue** (`/admin`), and upload the artwork file with a name, artist, cost and orientation. It appears in the store immediately. From the same page you can feature, retire, reprice, gift a design to every existing account, or delete it outright. Deleting is only allowed for designs no card has ever used (retire the rest); owners are refunded and it leaves their collection.
 
 - Postcard art: SVG, PNG, JPEG or WebP under 4 MB. Landscape 3:2 (say 1500×1000) or portrait 2:3. The card front is filled edge to edge; thumbnails letterbox.
 - Stamp art: roughly square. It is placed inside the perforated frame, tinted by the hue you choose, and cancelled by the postmark on the card.

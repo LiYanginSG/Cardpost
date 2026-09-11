@@ -50,7 +50,7 @@ export default async function AdminPage() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <b>{d.name}</b> <span className="artist">by {d.artist} · {d.orient === "port" ? "portrait" : "landscape"} · {d.cost} postage · {d.artUrl ? "uploaded" : "built-in"}{d.featured ? " · featured" : ""}{d.active ? "" : " · retired"}</span>
               <div className="note">{d.note}</div>
-              <ItemControls kind="design" id={d.id} active={d.active} featured={d.featured} cost={d.cost} />
+              <ItemControls kind="design" id={d.id} active={d.active} featured={d.featured} cost={d.cost} name={d.name} />
             </div>
           </div>
         ))}
@@ -64,7 +64,7 @@ export default async function AdminPage() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <b>{s.name}</b> <span className="artist">by {s.artist} · {s.cost} postage · {s.artUrl ? "uploaded" : "built-in"}{s.featured ? " · featured" : ""}{s.active ? "" : " · retired"}</span>
               <div className="note">{s.note}</div>
-              <ItemControls kind="stamp" id={s.id} active={s.active} featured={s.featured} cost={s.cost} />
+              <ItemControls kind="stamp" id={s.id} active={s.active} featured={s.featured} cost={s.cost} name={s.name} />
             </div>
           </div>
         ))}
