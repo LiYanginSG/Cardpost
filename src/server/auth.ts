@@ -87,7 +87,8 @@ export async function sendPasswordReset(rawEmail: string): Promise<AuthOutcome> 
   const email = rawEmail.trim().toLowerCase();
   if (!validEmail(email)) return { ok: false, error: "That doesn't look like an email address." };
   const sb = await createServerSupabase();
-  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: `${appUrl()}/auth/callback?next=/account/password` });
+  // Plain callback address: Supabase only forwards to addresses that exactly match the allow list.
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: `${appUrl()}/auth/callback` });
   return error ? { ok: false, error: friendly(error.message) } : { ok: true, message: "If that email has an account, a reset link is on its way." };
 }
 
@@ -108,21 +109,28 @@ export async function startGoogleSignIn(): Promise<{ url: string } | { error: st
   return { url: data.url };
 }
 
-/** Handles the link Supabase sends the person back on. Supports both the PKCE `code` and the `token_hash` template. */
-export async function finishSupabaseLogin(params: URLSearchParams): Promise<boolean> {
+export type CallbackResult = { ok: false } | { ok: true; recovery: boolean };
+
+/**
+ * Handles the link Supabase sends the person back on. Supports both the PKCE `code` and the `token_hash` template,
+ * and reports whether the link was a password reset so the caller can send them to the set-password page.
+ */
+export async function finishSupabaseLogin(params: URLSearchParams): Promise<CallbackResult> {
   const sb = await createServerSupabase();
   const code = params.get("code");
   const tokenHash = params.get("token_hash");
   const type = params.get("type");
   if (code) {
-    const { error } = await sb.auth.exchangeCodeForSession(code);
-    return !error;
+    const { data, error } = await sb.auth.exchangeCodeForSession(code);
+    if (error) return { ok: false };
+    return { ok: true, recovery: data.redirectType === "recovery" || type === "recovery" };
   }
   if (tokenHash && type) {
     const { error } = await sb.auth.verifyOtp({ token_hash: tokenHash, type: type as "email" | "magiclink" | "recovery" | "signup" });
-    return !error;
+    if (error) return { ok: false };
+    return { ok: true, recovery: type === "recovery" };
   }
-  return false;
+  return { ok: false };
 }
 
 /* ---------- built-in fallback (development only) ---------- */

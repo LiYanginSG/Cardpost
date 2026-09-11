@@ -10,10 +10,11 @@ export async function GET(req: Request) {
   const to = (path: string) => NextResponse.redirect(new URL(path, url.origin));
 
   if (supabaseAuthConfigured()) {
-    const ok = await finishSupabaseLogin(url.searchParams);
+    const r = await finishSupabaseLogin(url.searchParams);
+    if (!r.ok) return to("/login?error=expired");
+    if (r.recovery) return to("/account/password");
     const next = url.searchParams.get("next") ?? "";
-    const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/onboarding";
-    return to(ok ? safeNext : "/login?error=expired");
+    return to(next.startsWith("/") && !next.startsWith("//") ? next : "/onboarding");
   }
   const token = url.searchParams.get("token") ?? "";
   const sid = token ? await consumeLoginToken(token) : null;
