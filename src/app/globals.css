@@ -166,10 +166,10 @@ h3 { font-size: 13px; font-weight: 700; line-height: 1.35; }
 .msg p { font-family: var(--hand); color: var(--pen); overflow-wrap: anywhere; line-height: 1.22; }
 .msg .sig { font-family: var(--hand); margin-top: auto; padding-top: 1.4cqw; color: #3b5480; font-size: 4.2cqw; }
 .addr { padding: 3cqw; position: relative; display: flex; flex-direction: column; }
-.addr .imprint { font-size: 2.3cqw; letter-spacing: 0.1em; color: #8a7550; line-height: 1.5; max-width: 60%; }
+.addr .imprint { font-size: 2.2cqw; letter-spacing: 0.08em; color: #8a7550; line-height: 1.55; max-width: 54%; }
 .addr .imprint b { display: block; font-weight: 700; color: #6b5a3a; letter-spacing: 0.14em; font-size: 2.5cqw; }
 .addr .stamp { position: absolute; top: 2.4cqw; right: 2.4cqw; width: 11.6cqw; height: 14.6cqw; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.22)); }
-.addr .postmark { position: absolute; top: 0.4cqw; right: 9.4cqw; width: 16.6cqw; height: 16.6cqw; pointer-events: none; }
+.addr .postmark { position: absolute; top: 0.6cqw; right: 6.4cqw; width: 16.2cqw; height: 16.2cqw; pointer-events: none; }
 .addr .lines { margin-top: auto; padding-top: 4cqw; }
 .addr .lines i { display: block; height: 1px; background: var(--kraft-line); opacity: 0.5; margin: 2.3cqw 0; }
 .addr .to { font-size: 2.4cqw; color: #8a7550; letter-spacing: 0.05em; overflow-wrap: anywhere; margin-top: 1.5cqw; }
@@ -178,7 +178,7 @@ h3 { font-size: 13px; font-weight: 700; line-height: 1.35; }
 .back-grid.port .addr .imprint { max-width: 55%; font-size: 3cqw; }
 .back-grid.port .addr .imprint b { font-size: 3.2cqw; }
 .back-grid.port .addr .stamp { width: 15cqw; height: 19cqw; }
-.back-grid.port .addr .postmark { width: 21cqw; height: 21cqw; right: 12cqw; }
+.back-grid.port .addr .postmark { width: 21cqw; height: 21cqw; right: 8cqw; }
 .back-grid.port .addr .to { font-size: 3cqw; }
 .back-grid.port .addr .to b { font-size: 4.4cqw; }
 .back-grid.port .addr .to span { font-size: 3.4cqw; }
