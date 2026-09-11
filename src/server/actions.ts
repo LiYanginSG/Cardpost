@@ -10,6 +10,7 @@ import { openCard, passOn, reportHop, returnToPool, sendSealed, sendWandering } 
 import { acceptFriend, removeFriend, requestFriend } from "./friends";
 import { buyDesign, buyStamp, createCheckout, setActive, stripeConfigured } from "./store";
 import { checkPhoneVerification, startPhoneVerification } from "./phone";
+import { sendWelcomeCard } from "./welcome";
 
 export type FormState = { error?: string; ok?: string; devLink?: string } | null;
 
@@ -71,7 +72,9 @@ export async function onboardAction(_: FormState, fd: FormData): Promise<FormSta
   if (!isCity(city)) return { error: "Pick a posting city." };
   const taken = await db.user.findFirst({ where: { handle, NOT: { id: u.id } } });
   if (taken) return { error: `@${handle} is taken.` };
+  const firstTime = !u.city;
   await db.user.update({ where: { id: u.id }, data: { handle, displayName, city } });
+  if (firstTime) await sendWelcomeCard(u.id, await now());
   redirect("/mailbox");
 }
 

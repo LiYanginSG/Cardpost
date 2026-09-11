@@ -30,7 +30,7 @@ export function PostcardBack({ design: d, stamp: s, body, signature, toName, toC
         <StampArt stamp={s} className="stamp" cancelled />
         <Postmark city={postmarkCity} date={fmtDate(postmarkDate)} className="postmark" />
         <div className="lines"><i /><i /><i /></div>
-        <div className="to">TO<b>{toName}</b>{toCity}</div>
+        <div className="to">TO<b>{toName}</b><span>{toCity}</span></div>
       </div>
     </div>
   );

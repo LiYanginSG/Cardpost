@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { User } from "@prisma/client";
 import { IconAccount, IconMailbox, IconStore, IconWall, IconWrite } from "./icons";
 import { DevClock } from "./dev-clock";
+import { LandDefs } from "./world-map";
 import { TIME_TRAVEL_ENABLED, clockOffsetDays, now } from "@/lib/clock";
 import { fmtDateYear } from "@/lib/format";
 
@@ -21,6 +22,7 @@ export async function AppShell({ user, active, children }: { user: User; active?
   return (
     <>
       <div className="stripe" />
+      <LandDefs />
       {TIME_TRAVEL_ENABLED && <DevClock offsetDays={offset} nowLabel={fmtDateYear(n)} />}
       <div className="shell">
         <aside className="rail">
