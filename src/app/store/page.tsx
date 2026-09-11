@@ -4,7 +4,7 @@ import { BOOKS } from "@/lib/catalogue";
 import { getCatalogue } from "@/server/catalogue";
 import { DesignArt, StampArt } from "@/components/art";
 import { BuyButton } from "./buy-button";
-import { stripeConfigured } from "@/server/store";
+import { stripeConfigured, freeStore, effectiveCost } from "@/server/store";
 import { priceLabel } from "@/server/purchases";
 import { nextPostageDate } from "@/server/postage";
 import { fmtDate } from "@/lib/format";
@@ -16,6 +16,7 @@ export default async function StorePage({ searchParams }: { searchParams: Promis
   const user = await requireUser();
   const { paid } = await searchParams;
   const stripe = stripeConfigured();
+  const free = freeStore();
   const cat = await getCatalogue();
   const DESIGNS = cat.designs.filter((d) => d.active);
   const STAMPS = cat.stamps.filter((s) => s.active);
@@ -24,11 +25,12 @@ export default async function StorePage({ searchParams }: { searchParams: Promis
   return (
     <AppShell user={user} active="store">
       <h1>Store</h1>
-      <p className="sub">Postage buys delivery. Stamps and postcards are collectibles, bought with postage. Every design credits its artist.</p>
+      <p className="sub">{free ? "Soft launch: every postcard and stamp is free to add to your collection. Every design credits its artist." : "Postage buys delivery. Stamps and postcards are collectibles, bought with postage. Every design credits its artist."}</p>
       {paid && <div className="ok">Thank you. Your postage lands as soon as the payment clears, usually within a minute.</div>}
 
       <h2>Postage</h2>
       <p className="small" style={{ color: "var(--ink-2)" }}>You have <b>{user.postage}</b>. Next free 12 arrive {fmtDate(nextPostageDate(user))}, up to 40.</p>
+      {!stripe && free ? <p className="hint">Postage books aren't on sale during the soft launch. Free postage keeps coming every Sunday, and inviting a friend earns more.</p> : (<>
       <div className="books">
         {BOOKS.map((b) => (
           <div key={b.id} className="book">
@@ -39,8 +41,9 @@ export default async function StorePage({ searchParams }: { searchParams: Promis
         ))}
       </div>
       {!stripe && <p className="hint">{process.env.NODE_ENV !== "production" || process.env.DEV_TIME_TRAVEL === "1" ? "Stripe isn't configured, so buying a book credits it directly in dev." : "Postage books are not on sale yet. Free postage keeps coming every Sunday."}</p>}
+      </>)}
 
-      <h2>Postcards · 40 to 60 postage</h2>
+      <h2>Postcards{free ? " · free for now" : " · 40 to 60 postage"}</h2>
       <div className="grid">
         {designs.map((d) => {
           const owned = user.ownedDesigns.includes(d.id);
@@ -52,14 +55,14 @@ export default async function StorePage({ searchParams }: { searchParams: Promis
                 <b>{d.name}</b>
                 <span className="artist">by {d.artist} · {d.orient === "port" ? "portrait" : "landscape"}</span>
                 <span className="note">{d.note}</span>
-                <div className="price">{owned ? <span className="owned">In your collection</span> : <BuyButton kind="design" id={d.id} cost={d.cost} canAfford={user.postage >= d.cost} />}</div>
+                <div className="price">{owned ? <span className="owned">In your collection</span> : <BuyButton kind="design" id={d.id} cost={effectiveCost(d.cost)} canAfford={user.postage >= effectiveCost(d.cost)} />}</div>
               </div>
             </div>
           );
         })}
       </div>
 
-      <h2>Stamps · 20 to 30 postage</h2>
+      <h2>Stamps{free ? " · free for now" : " · 20 to 30 postage"}</h2>
       <div className="grid">
         {stamps.map((s) => {
           const owned = user.ownedStamps.includes(s.id);
@@ -71,7 +74,7 @@ export default async function StorePage({ searchParams }: { searchParams: Promis
                 <b>{s.name}</b>
                 <span className="artist">by {s.artist}</span>
                 <span className="note">{s.note}</span>
-                <div className="price">{owned ? <span className="owned">In your collection</span> : <BuyButton kind="stamp" id={s.id} cost={s.cost} canAfford={user.postage >= s.cost} />}</div>
+                <div className="price">{owned ? <span className="owned">In your collection</span> : <BuyButton kind="stamp" id={s.id} cost={effectiveCost(s.cost)} canAfford={user.postage >= effectiveCost(s.cost)} />}</div>
               </div>
             </div>
           );

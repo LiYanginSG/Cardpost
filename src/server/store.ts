@@ -7,6 +7,10 @@ import { appUrl } from "./email";
 import { creditPurchase, storeCurrency } from "./purchases";
 
 export const stripeConfigured = () => Boolean(process.env.STRIPE_SECRET_KEY);
+
+/** Soft launch: every postcard and stamp is free to add. Set FREE_STORE=0 to switch prices on. */
+export const freeStore = () => process.env.FREE_STORE !== "0";
+export const effectiveCost = (cost: number) => (freeStore() ? 0 : cost);
 const stripe = () => new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 export async function buyDesign(userId: string, designId: string): Promise<{ ok: boolean; error?: string }> {
@@ -15,8 +19,9 @@ export async function buyDesign(userId: string, designId: string): Promise<{ ok:
   if (!d) return { ok: false, error: "That design isn't for sale." };
   const u = await db.user.findUniqueOrThrow({ where: { id: userId } });
   if (u.ownedDesigns.includes(d.id)) return { ok: false, error: "Already in your collection." };
-  if (u.postage < d.cost) return { ok: false, error: `Needs ${d.cost} postage. You have ${u.postage}.` };
-  await db.user.update({ where: { id: userId }, data: { postage: { decrement: d.cost }, ownedDesigns: { push: d.id } } });
+  const cost = effectiveCost(d.cost);
+  if (u.postage < cost) return { ok: false, error: `Needs ${cost} postage. You have ${u.postage}.` };
+  await db.user.update({ where: { id: userId }, data: { postage: { decrement: cost }, ownedDesigns: { push: d.id } } });
   return { ok: true };
 }
 
@@ -26,8 +31,9 @@ export async function buyStamp(userId: string, stampId: string): Promise<{ ok: b
   if (!s) return { ok: false, error: "That stamp isn't for sale." };
   const u = await db.user.findUniqueOrThrow({ where: { id: userId } });
   if (u.ownedStamps.includes(s.id)) return { ok: false, error: "Already in your collection." };
-  if (u.postage < s.cost) return { ok: false, error: `Needs ${s.cost} postage. You have ${u.postage}.` };
-  await db.user.update({ where: { id: userId }, data: { postage: { decrement: s.cost }, ownedStamps: { push: s.id } } });
+  const cost = effectiveCost(s.cost);
+  if (u.postage < cost) return { ok: false, error: `Needs ${cost} postage. You have ${u.postage}.` };
+  await db.user.update({ where: { id: userId }, data: { postage: { decrement: cost }, ownedStamps: { push: s.id } } });
   return { ok: true };
 }
 

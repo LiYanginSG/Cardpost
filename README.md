@@ -66,6 +66,10 @@ Every account has a link like `https://your-app/i/abc1234` under **Account → I
 
 The admin page lists everyone with an account. **Delete** removes their sign-in from Supabase Auth and retires their profile here. Deleting a user directly in Supabase's Authentication page also works: the maintenance job notices within the hour and retires the profile.
 
+## Soft launch mode
+
+`FREE_STORE` is on unless set to `0`: every postcard and stamp is free to add to a collection and the postage-book section is hidden. Flip it to `0` when you're ready to charge; listed prices apply from then on.
+
 ## Adding postcards and stamps
 
 Profile pictures are uploaded from Account, squared and shrunk to 256px in the browser, and stored in the same Supabase bucket under `avatars/`.

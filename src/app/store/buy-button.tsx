@@ -13,7 +13,7 @@ export function BuyButton({ kind, id, cost, canAfford }: { kind: "design" | "sta
   return (
     <div>
       <button type="button" className={`btn btn-sm ${kind === "book" ? "btn-primary" : ""}`} disabled={pending || (!canAfford && kind !== "book")} onClick={run}>
-        {pending ? "…" : kind === "book" ? `Buy · ${cost}` : `${cost} postage`}
+        {pending ? "…" : kind === "book" ? `Buy · ${cost}` : cost === 0 ? "Add · free" : `${cost} postage`}
       </button>
       {msg?.error && <div className="warn" style={{ margin: "6px 0 0" }}>{msg.error}</div>}
       {msg?.ok && <div className="ok" style={{ margin: "6px 0 0" }}>{msg.ok}</div>}
