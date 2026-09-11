@@ -31,9 +31,11 @@ export default async function AccountPage() {
     db.card.aggregate({ where: { senderId: user.id, type: "sealed" }, _sum: { distanceKm: true } }),
   ]);
   // Reply rate: of sealed cards you received and opened, how many senders you wrote back to afterwards.
-  const repliedTo = await db.card.findMany({ where: { recipientId: user.id, type: "sealed", openedAt: { not: null } }, select: { senderId: true, openedAt: true } });
-  let replies = 0;
-  for (const r of repliedTo) if (await db.card.count({ where: { senderId: user.id, recipientId: r.senderId, sentAt: { gte: r.openedAt! } } })) replies++;
+  const [repliedTo, mySent] = await Promise.all([
+    db.card.findMany({ where: { recipientId: user.id, type: "sealed", openedAt: { not: null } }, select: { senderId: true, openedAt: true } }),
+    db.card.findMany({ where: { senderId: user.id, type: "sealed" }, select: { recipientId: true, sentAt: true } }),
+  ]);
+  const replies = repliedTo.filter((r) => mySent.some((c) => c.recipientId === r.senderId && c.sentAt >= r.openedAt!)).length;
 
   return (
     <AppShell user={user} active="account">

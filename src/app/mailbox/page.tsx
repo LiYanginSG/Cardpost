@@ -20,12 +20,13 @@ type SP = { kind?: string; box?: string; view?: string; sent?: string };
 export default async function Mailbox({ searchParams }: { searchParams: Promise<SP> }) {
   const user = await requireUser();
   const t = await now();
-  const cat = await getCatalogue();
   const sp = await searchParams;
   const kind = sp.kind === "wandering" ? "wandering" : "sealed";
   const box = sp.box === "out" ? "out" : "in";
-  const cards: CardFull[] =
-    kind === "sealed" ? (box === "in" ? await sealedInbox(user.id, t) : await sealedOutbox(user.id)) : box === "in" ? await wanderingInbox(user.id, t) : await wanderingOutbox(user.id);
+  const [cat, cards]: [Catalogue, CardFull[]] = await Promise.all([
+    getCatalogue(),
+    kind === "sealed" ? (box === "in" ? sealedInbox(user.id, t) : sealedOutbox(user.id)) : box === "in" ? wanderingInbox(user.id, t) : wanderingOutbox(user.id),
+  ]);
   const view = sp.view === "list" || sp.view === "card" ? sp.view : cards.length > 20 ? "list" : "card";
   const q = (o: Partial<SP>) => `/mailbox?kind=${o.kind ?? kind}&box=${o.box ?? box}${o.view ? `&view=${o.view}` : ""}`;
   const showToggle = box === "in";

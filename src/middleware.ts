@@ -18,7 +18,8 @@ export async function middleware(request: NextRequest) {
       },
     },
   });
-  await supabase.auth.getUser();
+  // getClaims verifies the token locally when the project uses asymmetric signing keys, and refreshes it if expiring.
+  await supabase.auth.getClaims();
   return response;
 }
 

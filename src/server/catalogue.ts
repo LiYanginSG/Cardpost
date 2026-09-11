@@ -10,21 +10,20 @@ export type Catalogue = {
   stamp: (id: string) => Stamp;
 };
 
-/** Ensures the built-in designs exist. Runs once per fresh database. */
-async function ensureBuiltins() {
-  const n = await db.design.count();
-  if (n === 0) await db.design.createMany({ data: BUILTIN_DESIGNS, skipDuplicates: true });
-  const m = await db.stamp.count();
-  if (m === 0) await db.stamp.createMany({ data: BUILTIN_STAMPS, skipDuplicates: true });
-}
+const order = [{ sortOrder: "asc" as const }, { createdAt: "asc" as const }];
 
 /** The full catalogue, active and retired, cached per request. Old cards must keep rendering retired designs. */
 export const getCatalogue = cache(async (): Promise<Catalogue> => {
-  await ensureBuiltins();
-  const [designs, stamps] = await Promise.all([
-    db.design.findMany({ orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] }),
-    db.stamp.findMany({ orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] }),
-  ]);
+  let [designs, stamps] = await Promise.all([db.design.findMany({ orderBy: order }), db.stamp.findMany({ orderBy: order })]);
+  // Fresh database: seed the built-ins once. Costs nothing on later requests.
+  if (designs.length === 0) {
+    await db.design.createMany({ data: BUILTIN_DESIGNS, skipDuplicates: true });
+    designs = await db.design.findMany({ orderBy: order });
+  }
+  if (stamps.length === 0) {
+    await db.stamp.createMany({ data: BUILTIN_STAMPS, skipDuplicates: true });
+    stamps = await db.stamp.findMany({ orderBy: order });
+  }
   const dm = new Map(designs.map((d) => [d.id, d]));
   const sm = new Map(stamps.map((s) => [s.id, s]));
   return {

@@ -20,8 +20,7 @@ function routeSummary(cities: string[]) {
 
 export default async function WallPage() {
   const user = await requireUser();
-  const rows = await wall(50);
-  const cat = await getCatalogue();
+  const [rows, cat] = await Promise.all([wall(50), getCatalogue()]);
   return (
     <AppShell user={user} active="wall">
       <h1>The wall</h1>

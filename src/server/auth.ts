@@ -104,14 +104,16 @@ async function fallbackUser(): Promise<User | null> {
 
 async function supabaseUser(): Promise<User | null> {
   const sb = await createServerSupabase();
-  const { data } = await sb.auth.getUser();
-  const au = data.user;
-  if (!au?.email) return null;
-  const email = au.email.toLowerCase();
-  const byAuth = await db.user.findUnique({ where: { authId: au.id } });
+  const { data } = await sb.auth.getClaims();
+  const claims = data?.claims;
+  const authId = claims?.sub;
+  const rawEmail = typeof claims?.email === "string" ? claims.email : undefined;
+  if (!authId || !rawEmail) return null;
+  const email = rawEmail.toLowerCase();
+  const byAuth = await db.user.findUnique({ where: { authId } });
   if (byAuth) return byAuth;
   // First sign-in: create the profile row, or link an existing row with the same email.
-  return db.user.upsert({ where: { email }, update: { authId: au.id }, create: { email, authId: au.id } });
+  return db.user.upsert({ where: { email }, update: { authId }, create: { email, authId } });
 }
 
 /** Current user or null. Cached per request. Also settles any weekly postage that has come due. */

@@ -15,9 +15,7 @@ export default async function WritePage({ searchParams }: { searchParams: Promis
   const user = await requireUser();
   const t = await now();
   const sp = await searchParams;
-  const friends = await listFriends(user.id);
-  const sentToday = await wanderingSentToday(user.id, t);
-  const cat = await getCatalogue();
+  const [friends, sentToday, cat] = await Promise.all([listFriends(user.id), wanderingSentToday(user.id, t), getCatalogue()]);
   return (
     <AppShell user={user} active="write">
       <h1>Write a card</h1>
